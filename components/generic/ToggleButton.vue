@@ -5,8 +5,10 @@
   </label>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import {defineComponent} from "vue";
+
+export default defineComponent({
   name: "ToggleButton",
   props: {
     text: {
@@ -21,11 +23,11 @@ export default {
     },
   },
   methods:{
-    toggle(event){
+    toggle(event:any){
       this.$emit("toggle", event.srcElement.checked);
     }
   }
-}
+});
 </script>
 
 <style scoped>

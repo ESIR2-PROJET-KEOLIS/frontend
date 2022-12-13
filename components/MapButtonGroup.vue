@@ -9,14 +9,16 @@
   </div>
 </template>
 
-<script>
-export default {
+<script lang="ts">
+import {defineComponent} from "vue";
+
+export default defineComponent({
   name: "MapButtonGroup",
 
   props: {
     drawerFor: String
   },
-}
+});
 </script>
 
 <style scoped>

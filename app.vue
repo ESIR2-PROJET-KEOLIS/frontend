@@ -44,22 +44,24 @@
 }
 </style>
 
-<script>
+<script lang="ts">
+import { defineComponent } from 'vue';
+
 import MapBoxComponent from "~/components/MapBoxComponent.vue";
 import MapButtonGroup from "~/components/MapButtonGroup.vue";
 import ToggleButton from "~/components/generic/ToggleButton.vue";
 
-export default {
+export default defineComponent({
   components: {
     "map-box" : MapBoxComponent,
     "map-btn-grp" : MapButtonGroup,
     "toggle-btn" : ToggleButton,
   },
   methods:{
-    realTimeToggle(value){
+    realTimeToggle(value:boolean){
       console.log("real time : "+value);
     }
   }
-}
+});
 
 </script>
