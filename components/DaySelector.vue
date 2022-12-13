@@ -1,6 +1,13 @@
 <template>
   <div class="btn-group mb-5">
-    <input v-for="(day,i) in days" type="radio" name="options" :data-title="day" class="btn" :checked="isChecked(i)" :disabled="disabled"/>
+    <input v-for="(day,i) in days"
+           type="radio"
+           name="options"
+           @click="click((i+1===7 ? 0 : i+1))"
+           :data-title="day"
+           class="btn"
+           :checked="isChecked((i+1===7 ? 0 : i+1))"
+           :disabled="disabled"/>
   </div>
 </template>
 
@@ -21,6 +28,9 @@ export default defineComponent({
     isChecked(index:number) : boolean{
       return index === this.selectedIndex;
     },
+    click(index:number){
+      this.$emit("change", index);
+    }
   },
   props: {
     disabled: {

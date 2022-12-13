@@ -25,14 +25,14 @@ export default defineComponent({
     },
     value: {
       type: Number,
-      required: false,
+      required: true,
       default : 0,
     },
   },
   methods:{
     change(event:any){
-      this.$emit("change", event.srcElement.value);
-      this.$emit("update:value", event.srcElement.value);
+      this.$emit("change", +event.srcElement.value);
+      this.$emit("update:value", +event.srcElement.value);
     }
   }
 });

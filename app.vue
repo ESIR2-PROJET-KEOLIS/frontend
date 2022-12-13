@@ -11,13 +11,12 @@
         <label for="my-drawer" class="drawer-overlay"></label>
         <div class="menu p-4 w-90 bg-base-100 text-base-content">
           <h1 class="text-center text-lg mb-1">Visualisation en Temps réel</h1>
-          <toggle-btn text="Temps Réel" @toggle="realTimeToggle" v-model:checked="realTime"></toggle-btn>
+          <toggle-btn text="Temps Réel" v-model:checked="realTime"></toggle-btn>
           <div class="divider"></div>
           <h1 class="text-center text-lg mb-4"> Simulation</h1>
-          <day-selector :disabled="realTime" :checkIndex="2"></day-selector>
-          <slider :disabled="realTime" v-model:value="simulatedHourSlider" min="0" max="1439"></slider>
+          <day-selector :disabled="realTime" :checkIndex="currentDaySimulated" @change="changeDay"></day-selector>
+          <slider :disabled="realTime" :value="simulatedHourSlider" :min="0" :max="1439" @change="changeTime"></slider>
           <p class="text-center text-lg mb-4"> {{simulatedHour}} </p>
-
         </div>
       </div>
     </div>
@@ -37,6 +36,7 @@
 
 <script lang="ts">
 import { defineComponent } from 'vue';
+import { SimulationInfo } from '@/classes/SimulationInfo';
 
 import {MapBoxComponent, MapButtonGroup, DaySelector} from "#components";
 import ToggleButton from "~/components/generic/ToggleButton.vue";
@@ -45,7 +45,8 @@ import Slider from "~/components/generic/Slider.vue";
 export default defineComponent({
   data: () => ({
     realTime: true,
-    simulatedHourSlider : 600,
+    realTimeSimulationInfo : new SimulationInfo(),
+    simulationInfo : new SimulationInfo(),
   }),
   components: {
     "map-box" : MapBoxComponent,
@@ -60,12 +61,26 @@ export default defineComponent({
       let minute : number = this.simulatedHourSlider % 60;
       return hour + "h" + (minute < 10 ? "0" + minute : minute);
     },
+    simulatedHourSlider() : number {
+      if(this.realTime && this.realTimeSimulationInfo !== null && this.realTimeSimulationInfo !== undefined) return this.realTimeSimulationInfo.getHourSimulated();
+      if(!this.realTime && this.simulationInfo !== null && this.simulationInfo !== undefined) return this.simulationInfo.getHourSimulated();
+      return 0;
+    },
+    currentDaySimulated() : number {
+      if(this.realTime && this.realTimeSimulationInfo !== null && this.realTimeSimulationInfo !== undefined) return this.realTimeSimulationInfo.getDaySimulated();
+      if(!this.realTime && this.simulationInfo !== null && this.simulationInfo !== undefined) return this.simulationInfo.getDaySimulated();
+      return 0;
+    },
   },
   methods:{
-    realTimeToggle(value:boolean){
-      console.log("new real time value : " +value);
-      //
-    }
+    changeTime(value: number){
+      if(this.realTime) return;
+      if(!isNaN(value)) this.simulationInfo.setHourSimulated(+value);
+    },
+    changeDay(day: number){
+      if(this.realTime) return;
+      if(!isNaN(day)) this.simulationInfo.setDaySimulated(day);
+    },
   }
 });
 
