@@ -1,7 +1,7 @@
 <template>
   <label class="label cursor-pointer">
     <span class="label-text text-lg">{{ text }}</span>
-    <input @change="toggle" type="checkbox" class="toggle toggle-primary toggle-lg" :checked="checked" />
+    <input @change="toggle" type="checkbox" class="toggle toggle-primary toggle-lg" :checked="checked"/>
   </label>
 </template>
 
@@ -25,6 +25,7 @@ export default defineComponent({
   methods:{
     toggle(event:any){
       this.$emit("toggle", event.srcElement.checked);
+      this.$emit("update:checked", event.srcElement.checked);
     }
   }
 });

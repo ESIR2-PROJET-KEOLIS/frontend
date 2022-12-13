@@ -11,19 +11,10 @@
         <label for="my-drawer" class="drawer-overlay"></label>
         <div class="menu p-4 w-90 bg-base-100 text-base-content">
           <h1 class="text-center text-lg mb-1">Visualisation en Temps réel</h1>
-          <toggle-btn text="Temps Réel" @toggle="realTimeToggle"></toggle-btn>
+          <toggle-btn text="Temps Réel" @toggle="realTimeToggle" v-model:checked="realTime"></toggle-btn>
           <div class="divider"></div>
           <h1 class="text-center text-lg mb-4"> Simulation</h1>
-          <div class="btn-group mb-5">
-            <input type="radio" name="options" data-title="L" class="btn" checked disabled/>
-            <input type="radio" name="options" data-title="M" class="btn" disabled/>
-            <input type="radio" name="options" data-title="M" class="btn" disabled/>
-            <input type="radio" name="options" data-title="J" class="btn" disabled/>
-            <input type="radio" name="options" data-title="V" class="btn" disabled/>
-            <input type="radio" name="options" data-title="S" class="btn" disabled/>
-            <input type="radio" name="options" data-title="D" class="btn" disabled/>
-          </div>
-
+          <day-selector :disabled="realTime" :checkIndex="2"></day-selector>
           <input class="mb-2 range range-primary" type="range" min="0" max="100" value="40" disabled/>
           <p class="text-center text-lg mb-4"> 14:00 </p>
 
@@ -47,19 +38,23 @@
 <script lang="ts">
 import { defineComponent } from 'vue';
 
-import MapBoxComponent from "~/components/MapBoxComponent.vue";
-import MapButtonGroup from "~/components/MapButtonGroup.vue";
+import {MapBoxComponent, MapButtonGroup, DaySelector} from "#components";
 import ToggleButton from "~/components/generic/ToggleButton.vue";
 
 export default defineComponent({
+  data: () => ({
+    realTime: true,
+  }),
   components: {
     "map-box" : MapBoxComponent,
     "map-btn-grp" : MapButtonGroup,
     "toggle-btn" : ToggleButton,
+    "day-selector" : DaySelector,
   },
   methods:{
     realTimeToggle(value:boolean){
-      console.log("real time : "+value);
+      console.log("new real time value : " +value);
+      //
     }
   }
 });
