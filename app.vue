@@ -15,8 +15,8 @@
           <div class="divider"></div>
           <h1 class="text-center text-lg mb-4"> Simulation</h1>
           <day-selector :disabled="realTime" :checkIndex="2"></day-selector>
-          <input class="mb-2 range range-primary" type="range" min="0" max="100" value="40" disabled/>
-          <p class="text-center text-lg mb-4"> 14:00 </p>
+          <slider :disabled="realTime" v-model:value="simulatedHourSlider" min="0" max="1439"></slider>
+          <p class="text-center text-lg mb-4"> {{simulatedHour}} </p>
 
         </div>
       </div>
@@ -40,16 +40,26 @@ import { defineComponent } from 'vue';
 
 import {MapBoxComponent, MapButtonGroup, DaySelector} from "#components";
 import ToggleButton from "~/components/generic/ToggleButton.vue";
+import Slider from "~/components/generic/Slider.vue";
 
 export default defineComponent({
   data: () => ({
     realTime: true,
+    simulatedHourSlider : 600,
   }),
   components: {
     "map-box" : MapBoxComponent,
     "map-btn-grp" : MapButtonGroup,
     "toggle-btn" : ToggleButton,
     "day-selector" : DaySelector,
+    "slider" : Slider,
+  },
+  computed:{
+    simulatedHour() : string{
+      let hour = Math.floor(this.simulatedHourSlider / 60);
+      let minute : number = this.simulatedHourSlider % 60;
+      return hour + "h" + (minute < 10 ? "0" + minute : minute);
+    },
   },
   methods:{
     realTimeToggle(value:boolean){
