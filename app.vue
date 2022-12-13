@@ -3,13 +3,14 @@
     <drawer drawerFor="my-drawer">
 
       <template #page-content>
+        <layer-menu id="layer"></layer-menu>
         <map-box></map-box>
         <map-btn-grp drawerFor="my-drawer" id="buttons"></map-btn-grp>
       </template>
 
       <template #drawer-content>
         <h1 class="text-center text-lg mb-1">Visualisation en Temps réel</h1>
-        <toggle-btn text="Temps Réel" v-model:checked="realTime"></toggle-btn>
+        <toggle-btn text="Temps Réel" v-model:checked="realTime" @toggle="toggleRealTime"></toggle-btn>
         <div class="divider"></div>
         <h1 class="text-center text-lg mb-4"> Simulation</h1>
         <day-selector :disabled="realTime" :checkIndex="currentDaySimulated" @change="changeDay"></day-selector>
@@ -30,13 +31,20 @@
   right: 1rem;
   z-index: 100;
 }
+
+#layer {
+  position: fixed;
+  top: 1rem;
+  left: 1rem;
+  z-index: 100;
+}
 </style>
 
 <script lang="ts">
 import { defineComponent } from 'vue';
 import { SimulationInfo } from '@/classes/SimulationInfo';
 
-import {MapBoxComponent, MapButtonGroup, DaySelector} from "#components";
+import {MapBoxComponent, MapButtonGroup, DaySelector, LayerMenu} from "#components";
 import ToggleButton from "~/components/generic/ToggleButton.vue";
 import Slider from "~/components/generic/Slider.vue";
 import Drawer from "~/components/generic/Drawer.vue";
@@ -54,6 +62,7 @@ export default defineComponent({
     "day-selector" : DaySelector,
     "slider" : Slider,
     "drawer" : Drawer,
+    "layer-menu" : LayerMenu
   },
   computed:{
     simulatedHour() : string{
@@ -81,6 +90,9 @@ export default defineComponent({
       if(this.realTime) return;
       if(!isNaN(day)) this.simulationInfo.setDaySimulated(day);
     },
+    toggleRealTime(value: boolean){
+      if(value) this.realTimeSimulationInfo.refreshRealTime();
+    }
   }
 });
 

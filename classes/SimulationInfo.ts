@@ -1,13 +1,11 @@
 export class SimulationInfo {
+    // @ts-ignore
     private day: number;
+    // @ts-ignore
     private hourSimulated: number;
 
     constructor() {
-        let currentdate = new Date();
-        let hour = currentdate.getHours();
-        let minute = currentdate.getMinutes();
-        this.hourSimulated = this.getHourSimulatedSlider(hour, minute);
-        this.day = currentdate.getDay();
+        this.refreshRealTime();
     }
 
     private getHourSimulatedSlider(hour:number, minute:number) : number {
@@ -28,5 +26,13 @@ export class SimulationInfo {
 
     public getHourSimulated() : number {
         return this.hourSimulated;
+    }
+
+    public refreshRealTime(){
+        let currentdate = new Date();
+        let hour = currentdate.getHours();
+        let minute = currentdate.getMinutes();
+        this.hourSimulated = this.getHourSimulatedSlider(hour, minute);
+        this.day = currentdate.getDay();
     }
 }
