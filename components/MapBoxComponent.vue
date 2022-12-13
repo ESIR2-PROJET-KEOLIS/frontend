@@ -9,6 +9,10 @@ import mapboxgl from "mapbox-gl";
 
 export default {
   name: "MapBoxComponent",
+  data: () => ({
+    layersBus : [],
+    mapRef : null,
+  }),
   mounted() {
     const runtimeConfig = useRuntimeConfig();
 
@@ -23,7 +27,7 @@ export default {
           },
           'geometry': {
             'type': 'Point',
-            'coordinates': [-77.038659, 38.931567]
+            'coordinates': [-1.643207, 48.124831]
           }
         },
         {
@@ -34,25 +38,50 @@ export default {
           },
           'geometry': {
             'type': 'Point',
-            'coordinates': [-77.038659, 38.931567]
-          }
-        },
-        {
-          'type': 'Feature',
-          'properties': {
-            'icon': 'stop',
-            'type' : 'bus'
-          },
-          'geometry': {
-            'type': 'Point',
-            'coordinates': [-77.038659, 38.931567]
+            'coordinates': [-1.651326, 48.118860]
           }
         },
       ]
     };
 
+    const bus_stop_data = {
+      'type': 'FeatureCollection',
+      'features': [
+        {
+          'type': 'Feature',
+          'properties': {
+            'icon': 'bus-stop',
+            'line' : 'C1'
+          },
+          'geometry': {
+            'type': 'Point',
+            'coordinates': [-1.657973, 48.115845],
+          }
+        },
+      ]
+    };
+
+    const subway_station_data = {
+      'type': 'FeatureCollection',
+      'features': [
+        {
+          'type': 'Feature',
+          'properties': {
+            'icon': 'subway',
+            'line' : 'A'
+          },
+          'geometry': {
+            'type': 'Point',
+            'coordinates': [-1.639051, 48.122305],
+          }
+        },
+      ]
+    };
+
+
+
     mapboxgl.accessToken = runtimeConfig.public.mapboxAccessToken;
-    new mapboxgl.Map({
+    this.mapRef = new mapboxgl.Map({
       container: 'mapDiv',
       style: 'mapbox://styles/jeanbombeur/clbm382qs000l14mu0ayx6zxi',
       center: [-1.656946, 48.114572],
@@ -66,7 +95,63 @@ export default {
       ),
     });
 
+    this.mapRef.on('load', () => {
+      this.mapRef.addSource('testData', {
+        'type': 'geojson',
+        'data': data
+      });
 
+      this.mapRef.addSource('busStop', {
+        'type': 'geojson',
+        'data': bus_stop_data
+      });
+
+      this.mapRef.addSource('subwayStation', {
+        'type': 'geojson',
+        'data': subway_station_data
+      });
+
+      if (!this.mapRef.getLayer("bus-stop")) this.mapRef.addLayer({
+        'id': "bus-stop",
+        'type': 'symbol',
+        'source': 'busStop',
+        'layout': {
+          'icon-image': "bus-stop",
+          'icon-allow-overlap': true
+        },
+        'filter': ['==', 'icon', "bus-stop"]
+      });
+
+      if (!this.mapRef.getLayer("subway")) this.mapRef.addLayer({
+        'id': "subway",
+        'type': 'symbol',
+        'source': 'subwayStation',
+        'layout': {
+          'icon-image': "subway",
+          'icon-allow-overlap': true
+        },
+        'filter': ['==', 'icon', "subway"]
+      });
+
+      for(const feature of data.features) {
+        const symbol = feature.properties.icon;
+        const layerID = "bus-line-" + feature.properties.line;
+
+        if (!this.mapRef.getLayer(layerID)) {
+          this.mapRef.addLayer({
+            'id': layerID,
+            'type': 'symbol',
+            'source': 'testData',
+            'layout': {
+              'icon-image': `${symbol}`,
+              'icon-allow-overlap': true
+            },
+            'filter': ['==', 'icon', symbol]
+          });
+          this.layersBus.push(layerID);
+        }
+      }
+    });
   }
 }
 </script>
