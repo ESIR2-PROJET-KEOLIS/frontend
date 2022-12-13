@@ -37,6 +37,8 @@
 </template>
 
 <style>
+@import url('https://api.mapbox.com/mapbox-gl-js/v2.11.0/mapbox-gl.css');
+
 #buttons {
   position: fixed;
   top: 1rem;
