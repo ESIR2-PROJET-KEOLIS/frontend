@@ -11,10 +11,7 @@
         <label for="my-drawer" class="drawer-overlay"></label>
         <div class="menu p-4 w-90 bg-base-100 text-base-content">
           <h1 class="text-center text-lg mb-1">Visualisation en Temps réel</h1>
-          <label class="label cursor-pointer">
-            <span class="label-text text-lg">Temps réel</span>
-            <input type="checkbox" class="toggle toggle-primary toggle-lg" checked/>
-          </label>
+          <toggle-btn text="Temps Réel" @toggle="realTimeToggle"></toggle-btn>
           <div class="divider"></div>
           <h1 class="text-center text-lg mb-4"> Simulation</h1>
           <div class="btn-group mb-5">
@@ -50,12 +47,19 @@
 <script>
 import MapBoxComponent from "~/components/MapBoxComponent.vue";
 import MapButtonGroup from "~/components/MapButtonGroup.vue";
+import ToggleButton from "~/components/generic/ToggleButton.vue";
 
 export default {
   components: {
     "map-box" : MapBoxComponent,
-    "map-btn-grp" : MapButtonGroup
+    "map-btn-grp" : MapButtonGroup,
+    "toggle-btn" : ToggleButton,
   },
+  methods:{
+    realTimeToggle(value){
+      console.log("real time : "+value);
+    }
+  }
 }
 
 </script>
