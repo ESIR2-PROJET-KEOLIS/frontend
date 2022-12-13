@@ -15,7 +15,7 @@ export default {
     mapboxgl.accessToken = runtimeConfig.public.mapboxAccessToken;
     new mapboxgl.Map({
       container: 'mapDiv',
-      style: 'mapbox://styles/mapbox/streets-v11',
+      style: 'mapbox://styles/jeanbombeur/clbm382qs000l14mu0ayx6zxi',
       center: [-1.656946, 48.114572],
       zoom:13,
       willReadFrequently: true
