@@ -1,6 +1,6 @@
 <template>
   <li>
-    <a @click.stop="clickLink">
+    <a @click.passive.stop="clickLink">
       <slot name="svg" style="pointer-events: none;"></slot>
       <check-box :label="label" :checked="value" style="pointer-events: none;"></check-box>
     </a>
