@@ -6,13 +6,19 @@
 
 <script>
 import mapboxgl from "mapbox-gl";
+import { BusLayer} from "~/classes/BusLayer";
 
 export default {
   name: "MapBoxComponent",
   data: () => ({
-    layersBus : [],
     mapRef : null,
   }),
+  props: {
+    busLines: {
+      type: Array,
+      default: []
+    }
+  },
   mounted() {
     const runtimeConfig = useRuntimeConfig();
 
@@ -148,7 +154,7 @@ export default {
             },
             'filter': ['==', 'icon', symbol]
           });
-          this.layersBus.push(layerID);
+          this.busLines.push(new BusLayer(layerID, feature.properties.line));
         }
       }
     });

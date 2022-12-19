@@ -1,5 +1,5 @@
 <template>
-  <label class="label cursor-pointer content-between w-full">
+  <label class="label cursor-pointer content-between w-full p-0">
     <span class="label-text">{{ label }}</span>
     <input type="checkbox" @input="change" :checked="checked" class="checkbox checkbox-primary" />
   </label>

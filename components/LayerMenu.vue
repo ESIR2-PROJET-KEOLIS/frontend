@@ -33,14 +33,12 @@
 </template>
 
 <script lang="ts">
-import CheckBox from "~/components/generic/CheckBox.vue";
 import {DropdownCheckbox} from "#components";
 import {defineComponent} from "vue";
 
 export default defineComponent({
   name: "LayerMenu",
   components: {
-    "check-box" : CheckBox,
     "dropdown-checkbox" : DropdownCheckbox
   },
 });

@@ -4,8 +4,8 @@
 
       <template #page-content>
         <layer-menu id="layer"></layer-menu>
-        <map-box></map-box>
-        <map-btn-grp drawerFor="my-drawer" id="buttons"></map-btn-grp>
+        <map-box :busLines="busLines"></map-box>
+        <map-btn-grp drawerFor="my-drawer" id="buttons" :layers="busLines"></map-btn-grp>
       </template>
 
       <template #drawer-content>
@@ -54,6 +54,7 @@ export default defineComponent({
     realTime: true,
     realTimeSimulationInfo : new SimulationInfo(),
     simulationInfo : new SimulationInfo(),
+    busLines : [],
   }),
   components: {
     "map-box" : MapBoxComponent,
