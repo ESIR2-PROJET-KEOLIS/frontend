@@ -13,6 +13,17 @@ export default {
   data: () => ({
     mapRef : null,
   }),
+  watch: {
+    busLines: {
+      handler(val, oldVal) {
+        for(let i = 0; i<this.busLines.length; i++){
+          this.mapRef.setLayoutProperty(this.busLines[i].layerID, 'visibility', this.busLines[i].visible ? 'visible' : 'none');
+          console.log(this.busLines[i].layerID + " : " + this.busLines[i].visible);
+        }
+      },
+      deep: true
+    },
+  },
   props: {
     busLines: {
       type: Array,
@@ -152,7 +163,7 @@ export default {
               'icon-image': `${symbol}`,
               'icon-allow-overlap': true
             },
-            'filter': ['==', 'icon', symbol]
+            'filter': ['==', 'line', layerID.split("-")[2]]
           });
           this.busLines.push(new BusLayer(layerID, feature.properties.line));
         }

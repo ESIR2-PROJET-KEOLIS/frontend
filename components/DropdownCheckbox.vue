@@ -1,18 +1,17 @@
 <template>
   <li>
-    <a>
-      <slot name="svg"></slot>
-      <check-box :label="label"></check-box>
+    <a @click.stop="clickLink">
+      <slot name="svg" style="pointer-events: none;"></slot>
+      <check-box :label="label" :checked="value" style="pointer-events: none;"></check-box>
     </a>
   </li>
 </template>
 
-<script>
-
-
+<script lang="ts">
+import {defineComponent} from "vue";
 import CheckBox from "~/components/generic/CheckBox.vue";
 
-export default {
+export default defineComponent({
   name: "DropdownCheckbox",
   components: {
     "check-box" : CheckBox
@@ -21,9 +20,18 @@ export default {
     label: {
       type: String,
       default: ""
+    },
+    value: {
+      type : Boolean,
+      default: true
     }
+  },
+  methods:{
+    clickLink(){
+      this.$emit("changeValue", !this.value);
+    },
   }
-}
+});
 </script>
 
 <style scoped>

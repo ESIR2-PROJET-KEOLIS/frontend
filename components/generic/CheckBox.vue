@@ -1,7 +1,7 @@
 <template>
   <label class="label cursor-pointer content-between w-full p-0">
     <span class="label-text">{{ label }}</span>
-    <input type="checkbox" @input="change" :checked="checked" class="checkbox checkbox-primary" />
+    <input type="checkbox" @input.stop="changeValue" :checked="checked" class="checkbox checkbox-primary" />
   </label>
 </template>
 
@@ -21,9 +21,8 @@ export default defineComponent({
     }
   },
   methods:{
-    change(e: any){
-      //this.$emit("change", e.target.checked);
-      console.log(e);
+    changeValue(e: any){
+      this.$emit("changeValue", e.target.checked);
     }
   }
 });
