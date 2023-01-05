@@ -1,6 +1,6 @@
 <template>
   <li>
-    <a @click.passive.stop="clickLink">
+    <a @click.passive.stop="clickLink" @dblclick="doubleClick">
       <slot name="svg" style="pointer-events: none;"></slot>
       <check-box :label="label" :checked="value" style="pointer-events: none;"></check-box>
     </a>
@@ -30,6 +30,9 @@ export default defineComponent({
     clickLink(){
       this.$emit("changeValue", !this.value);
     },
+    doubleClick(){
+      this.$emit("doubleClick");
+    }
   }
 });
 </script>
