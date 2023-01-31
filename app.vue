@@ -3,8 +3,12 @@
     <drawer drawerFor="my-drawer">
 
       <template #page-content>
-        <layer-menu id="layer"></layer-menu>
-        <map-box :busLines="busLines"></map-box>
+        <layer-menu id="layer"
+                    :busVisibility="busVisible"
+                    :stopVisibility="stopVisible"
+                    @changeStopVisibility="changeStopVisibility"
+                    @changeBusLineVisibility="changeBusLineVisibility"></layer-menu>
+        <map-box ref="mapBoxComp" :busLines="busLines"></map-box>
         <map-btn-grp drawerFor="my-drawer" id="buttons" :layers="busLines"></map-btn-grp>
       </template>
 
@@ -55,6 +59,8 @@ export default defineComponent({
     realTimeSimulationInfo : new SimulationInfo(),
     simulationInfo : new SimulationInfo(),
     busLines : [],
+    busVisible: true,
+    stopVisible: true
   }),
   components: {
     "map-box" : MapBoxComponent,
@@ -93,6 +99,14 @@ export default defineComponent({
     },
     toggleRealTime(value: boolean){
       if(value) this.realTimeSimulationInfo.refreshRealTime();
+    },
+    changeStopVisibility(value : boolean){
+      this.stopVisible = value;
+      this.$refs.mapBoxComp.changeStopVisibility(value);
+    },
+    changeBusLineVisibility(value : boolean){
+      this.busVisible = value;
+      this.$refs.mapBoxComp.changeVisibilityBus(value);
     }
   }
 });

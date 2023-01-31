@@ -16,6 +16,7 @@ export default {
     busses : JSON.parse(JSON.stringify(emptyFeatureCollection)),
     bus_stops : JSON.parse(JSON.stringify(emptyFeatureCollection)),
     subway_stops : JSON.parse(JSON.stringify(emptyFeatureCollection)),
+    empty : JSON.parse(JSON.stringify(emptyFeatureCollection)),
     initialized : false,
   }),
   watch: {
@@ -35,6 +36,12 @@ export default {
     }
   },
   methods:{
+    changeVisibilityBus(value){
+      if(value)
+        this.mapRef.getSource('busses').setData(this.busses);
+      else
+        this.mapRef.getSource('busses').setData(this.empty);
+    },
     loadMapFirstTime(data){
       const runtimeConfig = useRuntimeConfig();
       this.initialized = true;
