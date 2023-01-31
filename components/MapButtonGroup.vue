@@ -45,7 +45,8 @@ export default defineComponent({
     filteredLayers(){
       if(this.layers===undefined) return [];
       this.layers.sort((a: any, b: any) => a.lineName.localeCompare(b.lineName));
-      return this.layers.filter((layer: any) => layer.lineName.includes(this.filter));
+      let filterLower = this.filter.toLowerCase();
+      return this.layers.filter((layer: any) => layer.lineName.toLowerCase().includes(filterLower));
     }
   },
 
