@@ -1,0 +1,33 @@
+version: "3.9"
+services:
+  frontend:
+    build:
+      context: ./
+      dockerfile: dockerfile-dev
+    depends_on:
+      - backend
+    ports:
+      - "3000:3000"
+      - "24678:24678"
+  backend:
+    image: ghcr.io/esir2-projet-keolis/backend:main
+    depends_on:
+      - rabbitmq
+    environment:
+      AMQP_URL: amqp://guest:guest@rabbitmq:5672
+    ports:
+      - "4000:4000"
+      - "3500:3500"
+  collector:
+    image: ghcr.io/esir2-projet-keolis/collector:main
+    depends_on:
+      - rabbitmq
+  rabbitmq:
+    image: rabbitmq:3.11.3-management-alpine
+    ports:
+      - "5672:5672"
+      - "15672:15672"
+  processingunit:
+    image: ghcr.io/esir2-projet-keolis/processing-storage-unit:master
+    depends_on:
+      - rabbitmq

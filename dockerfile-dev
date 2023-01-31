@@ -1,0 +1,12 @@
+FROM node:18.12.1-alpine
+
+RUN mkdir -p /usr/src/nuxt-app
+WORKDIR /usr/src/nuxt-app
+
+COPY package*.json /usr/src/nuxt-app/
+RUN npm install
+COPY . /usr/src/nuxt-app/
+
+EXPOSE 3000
+
+CMD ["npm", "run", "dev"]
