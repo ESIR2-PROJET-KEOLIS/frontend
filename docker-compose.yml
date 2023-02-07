@@ -22,6 +22,8 @@ services:
     image: ghcr.io/esir2-projet-keolis/collector:main
     depends_on:
       - rabbitmq
+    environment:
+      PROD: "True"
   rabbitmq:
     image: rabbitmq:3.11.3-management-alpine
     ports:
