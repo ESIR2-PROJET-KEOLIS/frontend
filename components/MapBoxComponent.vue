@@ -2,12 +2,14 @@
   <div id="mapDiv">
 
   </div>
+  <img src="~/assets/icons/bus.png" alt="bus"  style="display: none; pointer-events: none" ref="icon-bus">
 </template>
 
 <script>
 import mapboxgl from "mapbox-gl";
 import { BusLayer} from "~/classes/BusLayer";
 import emptyFeatureCollection from "~/classes/emptyFeatureCollection.json";
+import BusLogo from '~/assets/icons/bus.png';
 
 export default {
   name: "MapBoxComponent",
@@ -18,6 +20,7 @@ export default {
     subway_stops : JSON.parse(JSON.stringify(emptyFeatureCollection)),
     empty : JSON.parse(JSON.stringify(emptyFeatureCollection)),
     initialized : false,
+    previousData: null,
   }),
   watch: {
     busLines: {
@@ -64,43 +67,108 @@ export default {
       this.busses = data;
 
       this.mapRef.on('load', () => {
-        this.mapRef.addSource('busses', {
-          'type': 'geojson',
-          'data': this.busses
-        });
 
-        this.mapRef.addSource('busStop', {
-          'type': 'geojson',
-          'data': this.bus_stops
-        });
+        const image = new Image(100, 100);
+        image.src = BusLogo;
 
-        this.mapRef.addSource('subwayStation', {
-          'type': 'geojson',
-          'data': this.subway_stops
-        });
+        // add image to the active style and make it SDF-enabled
+        this.mapRef.addImage('bus-icon', image, { sdf: true });
 
-        for(const feature of data.features) {
-          const symbol = feature.properties.icon;
-          const layerID = "bus-line-" + feature.properties.line;
+          this.mapRef.addSource('busses', {
+            'type': 'geojson',
+            'data': this.busses
+          });
 
-          if (!this.mapRef.getLayer(layerID)) {
-            this.mapRef.addLayer({
-              'id': layerID,
-              'type': 'symbol',
-              'source': 'busses',
-              'layout': {
-                'icon-image': `${symbol}`,
-                'icon-allow-overlap': true
-              },
-              'filter': ['==', 'line', layerID.split("-")[2]]
-            });
-            this.busLines.push(new BusLayer(layerID, feature.properties.line));
+          this.mapRef.addSource('busStop', {
+            'type': 'geojson',
+            'data': this.bus_stops
+          });
+
+          this.mapRef.addSource('subwayStation', {
+            'type': 'geojson',
+            'data': this.subway_stops
+          });
+
+          for(const feature of data.features) {
+            const symbol = "bus-icon"//"BSicon_BUS"//feature.properties.icon;
+            const layerID = "bus-line-" + feature.properties.line;
+
+            if (!this.mapRef.getLayer(layerID)) {
+              this.mapRef.addLayer({
+                'id': layerID,
+                'type': 'symbol',
+                'source': 'busses',
+                'layout': {
+                  'icon-image': `${symbol}`,
+                  'icon-size': 0.35,
+                  'icon-allow-overlap': true
+                },
+                "paint": {
+                  "icon-color": "#1f89a9"
+                },
+                'filter': ['==', 'line', layerID.split("-")[2]]
+              });
+              this.busLines.push(new BusLayer(layerID, feature.properties.line));
+            }
           }
-        }
+
+          this.animate();
+
       });
+    },
+    animate(){
+      if(this.previousData !== null){
+        this.previousData.features.forEach((feature, i) => {
+          if(feature === undefined || feature.geometry === undefined || feature.geometry.coordinates === undefined){
+            return;
+          }
+          const currentCoordinates = feature.geometry.coordinates;
+
+          const bearing = 30;
+          const distance = 1;
+          const nextPoint = this.destinationPoint(currentCoordinates[1], currentCoordinates[0], distance, bearing);
+          feature.geometry.coordinates = [nextPoint[1], nextPoint[0]];
+        });
+
+        this.mapRef.getSource('busses').setData(this.previousData);
+      }
+
+      setTimeout(() => {requestAnimationFrame(this.animate)}, 100);
+
+
+    },
+    // source : (DaveAlden) https://stackoverflow.com/questions/19352921/how-to-use-direction-angle-and-speed-to-calculate-next-times-latitude-and-longi
+    destinationPoint(lat, lon, distance, bearing) {
+      var radius = 6371e3; // (Mean) radius of earth
+
+      var toRadians = function(v) { return v * Math.PI / 180; };
+      var toDegrees = function(v) { return v * 180 / Math.PI; };
+
+      // sinφ2 = sinφ1·cosδ + cosφ1·sinδ·cosθ
+      // tanΔλ = sinθ·sinδ·cosφ1 / cosδ−sinφ1·sinφ2
+      // see mathforum.org/library/drmath/view/52049.html for derivation
+
+      var δ = Number(distance) / radius; // angular distance in radians
+      var θ = toRadians(Number(bearing));
+
+      var φ1 = toRadians(Number(lat));
+      var λ1 = toRadians(Number(lon));
+
+      var sinφ1 = Math.sin(φ1), cosφ1 = Math.cos(φ1);
+      var sinδ = Math.sin(δ), cosδ = Math.cos(δ);
+      var sinθ = Math.sin(θ), cosθ = Math.cos(θ);
+
+      var sinφ2 = sinφ1*cosδ + cosφ1*sinδ*cosθ;
+      var φ2 = Math.asin(sinφ2);
+      var y = sinθ * sinδ * cosφ1;
+      var x = cosδ - sinφ1 * sinφ2;
+      var λ2 = λ1 + Math.atan2(y, x);
+
+      return [toDegrees(φ2), (toDegrees(λ2)+540)%360-180]; // normalise to −180..+180°
     },
     updateMap(data){
       this.mapRef.getSource('busses').setData(data);
+      this.previousData = data;
     },
   },
   mounted() {
@@ -115,93 +183,6 @@ export default {
       if(!this.initialized) this.loadMapFirstTime(JSON.parse(event.data));
       else this.updateMap(JSON.parse(event.data));
     }
-
-    /*const data = {
-      'type': 'FeatureCollection',
-      'features': [
-        {
-          'type': 'Feature',
-          'properties': {
-            'icon': 'bus',
-            'line' : 'C1'
-          },
-          'geometry': {
-            'type': 'Point',
-            'coordinates': [-1.643207, 48.124831]
-          }
-        },
-        {
-          'type': 'Feature',
-          'properties': {
-            'icon': 'bus',
-            'line' : 'C5'
-          },
-          'geometry': {
-            'type': 'Point',
-            'coordinates': [-1.651326, 48.118860]
-          }
-        },
-      ]
-    };
-
-    const bus_stop_data = {
-      'type': 'FeatureCollection',
-      'features': [
-        {
-          'type': 'Feature',
-          'properties': {
-            'icon': 'bus-stop',
-            'line' : 'C1'
-          },
-          'geometry': {
-            'type': 'Point',
-            'coordinates': [-1.657973, 48.115845],
-          }
-        },
-      ]
-    };
-
-    const subway_station_data = {
-      'type': 'FeatureCollection',
-      'features': [
-        {
-          'type': 'Feature',
-          'properties': {
-            'icon': 'subway',
-            'line' : 'A'
-          },
-          'geometry': {
-            'type': 'Point',
-            'coordinates': [-1.639051, 48.122305],
-          }
-        },
-      ]
-    };*/
-
-
-      /**/
-
-      /*if (!this.mapRef.getLayer("bus-stop")) this.mapRef.addLayer({
-        'id': "bus-stop",
-        'type': 'symbol',
-        'source': 'busStop',
-        'layout': {
-          'icon-image': "bus-stop",
-          'icon-allow-overlap': true
-        },
-        'filter': ['==', 'icon', "bus-stop"]
-      });
-
-      if (!this.mapRef.getLayer("subway")) this.mapRef.addLayer({
-        'id': "subway",
-        'type': 'symbol',
-        'source': 'subwayStation',
-        'layout': {
-          'icon-image': "subway",
-          'icon-allow-overlap': true
-        },
-        'filter': ['==', 'icon', "subway"]
-      });*/
   }
 }
 </script>
