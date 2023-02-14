@@ -1,14 +1,5 @@
 version: "3.9"
 services:
-  frontend:
-    build:
-      context: ./
-      dockerfile: dockerfile-dev
-    depends_on:
-      - backend
-    ports:
-      - "3000:3000"
-      - "24678:24678"
   backend:
     image: ghcr.io/esir2-projet-keolis/backend:main
     depends_on:
