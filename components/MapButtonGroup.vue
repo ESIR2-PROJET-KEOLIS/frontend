@@ -13,7 +13,7 @@
         </label>
         <dropdown-checkbox v-for="(layer, i) in filteredLayers" :value="layer.visible" @changeValue="changeLayerVisibility($event, i)" @doubleClick="changeUniqueLayerVisibility(i)">
           <template #svg>
-            <img v-if="pictoLoaded" :src="picto[layer.lineName].src" style="width: 22px; height: 22px;"/>
+            <img v-if="pictoLoaded && picto[layer.lineName]" :src="picto[layer.lineName].src" style="width: 22px; height: 22px;"/>
           </template>
         </dropdown-checkbox>
       </ul>

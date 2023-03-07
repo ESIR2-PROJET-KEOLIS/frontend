@@ -10,6 +10,7 @@ import mapboxgl from "mapbox-gl";
 import { BusLayer} from "~/classes/BusLayer";
 import emptyFeatureCollection from "~/classes/emptyFeatureCollection.json";
 import BusLogo from '~/assets/icons/bus.png';
+import axios from "axios";
 
 export default {
   name: "MapBoxComponent",
@@ -21,6 +22,7 @@ export default {
     empty : JSON.parse(JSON.stringify(emptyFeatureCollection)),
     initialized : false,
     previousData: null,
+    routes: {}
   }),
   watch: {
     busLines: {
@@ -118,14 +120,19 @@ export default {
     },
     animate(){
       if(this.previousData !== null){
+        //console.log(this.previousData)
+        // vitesse 20km/h, 100ms actualisation, vitesse en m/100ms = 0.555555
         this.previousData.features.forEach((feature, i) => {
           if(feature === undefined || feature.geometry === undefined || feature.geometry.coordinates === undefined){
             return;
           }
-          const currentCoordinates = feature.geometry.coordinates;
 
-          const bearing = 30;
-          const distance = 1;
+          const currentCoordinates = feature.geometry.coordinates;
+          const nextCoor = this.routes[feature.properties.line+"_"+feature.properties.sens][feature.properties.nextindex];
+
+          const bearing = this.getBearing(currentCoordinates[1], currentCoordinates[0], nextCoor[1], nextCoor[0]);
+          //console.log(bearing)
+          const distance = 0.55;
           const nextPoint = this.destinationPoint(currentCoordinates[1], currentCoordinates[0], distance, bearing);
           feature.geometry.coordinates = [nextPoint[1], nextPoint[0]];
         });
@@ -134,9 +141,18 @@ export default {
       }
 
       setTimeout(() => {requestAnimationFrame(this.animate)}, 100);
-
-
     },
+
+    getBearing(lat1, lon1, lat2, lon2) {
+      const y = Math.sin(lon2 - lon1) * Math.cos(lat2);
+      const x =
+          Math.cos(lat1) * Math.sin(lat2) -
+          Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
+      const bearing = (Math.atan2(y, x) * 180) / Math.PI;
+
+      return (bearing + 360) % 360;
+    },
+
     // source : (DaveAlden) https://stackoverflow.com/questions/19352921/how-to-use-direction-angle-and-speed-to-calculate-next-times-latitude-and-longi
     destinationPoint(lat, lon, distance, bearing) {
       var radius = 6371e3; // (Mean) radius of earth
@@ -183,6 +199,19 @@ export default {
       if(!this.initialized) this.loadMapFirstTime(JSON.parse(event.data));
       else this.updateMap(JSON.parse(event.data));
     }
+
+    try{
+      let ref = this;
+      axios.get('http://localhost:3500/lines', {
+        headers: {"Access-Control-Allow-Origin": "*"}
+      }).then(function (response) {
+        ref.routes = response.data;
+        console.log(ref.routes)
+      })
+    } catch (e){
+      console.log(e)
+    }
+
   }
 }
 </script>
