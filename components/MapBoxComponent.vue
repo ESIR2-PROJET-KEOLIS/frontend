@@ -22,7 +22,24 @@ export default {
     empty : JSON.parse(JSON.stringify(emptyFeatureCollection)),
     initialized : false,
     previousData: null,
-    routes: {}
+    routes: {},
+    geojson : {
+      type: 'FeatureCollection',
+      features: [
+        {
+          type: 'Feature',
+          properties: {},
+          geometry: {
+            coordinates: [
+                [-1.7630257931795086, 48.15157592711489],
+                [-1.763066, 48.151553],
+              [-1.656946, 48.114572]
+            ],
+            type: 'LineString'
+          }
+        }
+      ]
+    }
   }),
   watch: {
     busLines: {
@@ -76,6 +93,11 @@ export default {
         // add image to the active style and make it SDF-enabled
         this.mapRef.addImage('bus-icon', image, { sdf: true });
 
+          this.mapRef.addSource('line', {
+            type: 'geojson',
+            data: this.geojson
+          });
+
           this.mapRef.addSource('busses', {
             'type': 'geojson',
             'data': this.busses
@@ -89,6 +111,17 @@ export default {
           this.mapRef.addSource('subwayStation', {
             'type': 'geojson',
             'data': this.subway_stops
+          });
+
+          this.mapRef.addLayer({
+            type: 'line',
+            source: 'line',
+            id: 'line-background',
+            paint: {
+              'line-color': 'red',
+              'line-width': 6,
+              'line-opacity': 1
+            }
           });
 
           for(const feature of data.features) {
@@ -114,43 +147,66 @@ export default {
             }
           }
 
-          this.animate();
+        console.log("Start animation");
+        this.animate();
 
       });
     },
     animate(){
       if(this.previousData !== null){
-        //console.log(this.previousData)
         // vitesse 20km/h, 100ms actualisation, vitesse en m/100ms = 0.555555
+        let newFeatures = [];
         this.previousData.features.forEach((feature, i) => {
           if(feature === undefined || feature.geometry === undefined || feature.geometry.coordinates === undefined){
             return;
           }
+          let newFeature = {
+            type: 'Feature',
+            properties: {},
+            geometry: {
+              coordinates: [],
+              type: 'LineString'
+            }};
 
           const currentCoordinates = feature.geometry.coordinates;
-          const nextCoor = this.routes[feature.properties.line+"_"+feature.properties.sens][feature.properties.nextindex];
+          let nextCoor = this.routes[feature.properties.line+"_"+feature.properties.sens];
+          if(nextCoor === undefined){return;}
+          nextCoor = nextCoor[feature.properties.nextindex];
+          if(nextCoor === undefined){return;}
 
-          const bearing = this.getBearing(currentCoordinates[1], currentCoordinates[0], nextCoor[1], nextCoor[0]);
-          //console.log(bearing)
+          const bearing = this.getBearing(currentCoordinates[1], currentCoordinates[0], nextCoor[0], nextCoor[1]);
+          newFeature.geometry.coordinates = [[currentCoordinates[0], currentCoordinates[1]], [nextCoor[1], nextCoor[0]]];
+          newFeatures.push(newFeature);
+
           const distance = 0.55;
           const nextPoint = this.destinationPoint(currentCoordinates[1], currentCoordinates[0], distance, bearing);
           feature.geometry.coordinates = [nextPoint[1], nextPoint[0]];
         });
 
+        this.geojson.features = newFeatures;
+        this.mapRef.getSource('line').setData(this.geojson);
         this.mapRef.getSource('busses').setData(this.previousData);
       }
 
-      setTimeout(() => {requestAnimationFrame(this.animate)}, 100);
+      setTimeout(() => {requestAnimationFrame(this.animate)}, 250);
     },
 
-    getBearing(lat1, lon1, lat2, lon2) {
-      const y = Math.sin(lon2 - lon1) * Math.cos(lat2);
-      const x =
-          Math.cos(lat1) * Math.sin(lat2) -
-          Math.sin(lat1) * Math.cos(lat2) * Math.cos(lon2 - lon1);
-      const bearing = (Math.atan2(y, x) * 180) / Math.PI;
+    // https://stackoverflow.com/questions/3932502/calculate-angle-between-two-latitude-longitude-points
+    getBearing(lat1, long1, lat2, long2) {
+      let dLon = (long2 - long1);
 
-      return (bearing + 360) % 360;
+      let y = Math.sin(dLon) * Math.cos(lat2);
+      let x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1)
+          * Math.cos(lat2) * Math.cos(dLon);
+
+      let brng = Math.atan2(y, x);
+
+      var pi = Math.PI;
+      brng = brng * (180/pi);
+      brng = (brng + 360) % 360;
+      brng = 360 - brng;
+
+      return brng
     },
 
     // source : (DaveAlden) https://stackoverflow.com/questions/19352921/how-to-use-direction-angle-and-speed-to-calculate-next-times-latitude-and-longi
@@ -184,11 +240,16 @@ export default {
     },
     updateMap(data){
       this.mapRef.getSource('busses').setData(data);
-      this.previousData = data;
+    },
+    updateLine(){
+      //this.mapRef.getSource('line').setData(this.geojson);
+      console.log("Update line")
+      console.log(this.geojson)
     },
   },
   mounted() {
     let webSocket = new WebSocket("ws://localhost:4000");
+    console.log("Initialize WebSocket")
 
     webSocket.onopen = (event) => {
       webSocket.send("bus");
@@ -196,17 +257,23 @@ export default {
     };
 
     webSocket.onmessage = (event) => {
-      if(!this.initialized) this.loadMapFirstTime(JSON.parse(event.data));
-      else this.updateMap(JSON.parse(event.data));
+      console.log("WebSocket message received")
+      let data = JSON.parse(event.data);
+      this.previousData = data;
+      if(!this.initialized) this.loadMapFirstTime(data);
+      else this.updateMap(data);
     }
 
     try{
       let ref = this;
+      console.log("Api lines request...")
       axios.get('http://localhost:3500/lines', {
         headers: {"Access-Control-Allow-Origin": "*"}
       }).then(function (response) {
         ref.routes = response.data;
+        //ref.geojson.features[0].geometry.coordinates = ref.routes["C1_0"].map((array) => {return [array[1], array[0]]});
         console.log(ref.routes)
+        setTimeout(() => {ref.updateLine()}, 1000);
       })
     } catch (e){
       console.log(e)
