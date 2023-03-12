@@ -1,42 +1,15 @@
-# Nuxt 3 Minimal Starter
+# Keolis Project Frontend
 
-Look at the [Nuxt 3 documentation](https://nuxt.com/docs/getting-started/introduction) to learn more.
-
-## Setup
-
-Make sure to install the dependencies:
-
-```bash
-# yarn
-yarn install
-
-# npm
-npm install
-
-# pnpm
-pnpm install --shamefully-hoist
-```
+The frontend is build with Nuxt3. We are also using TailwindCSS + DaisyUI.
 
 ## Development Server
 
 Start the development server on http://localhost:3000
 
 ```bash
-npm run dev
+docker-compose -f docker-compose.yml up
 ```
 
 ## Production
 
-Build the application for production:
-
-```bash
-npm run build
-```
-
-Locally preview production build:
-
-```bash
-npm run preview
-```
-
-Check out the [deployment documentation](https://nuxt.com/docs/getting-started/deployment) for more information.
+Use the docker compose from https://github.com/ESIR2-PROJET-KEOLIS/prod.
