@@ -8,38 +8,24 @@
 <script>
 import mapboxgl from "mapbox-gl";
 import { BusLayer} from "~/classes/BusLayer";
-import emptyFeatureCollection from "~/classes/emptyFeatureCollection.json";
 import BusLogo from '~/assets/icons/bus.png';
 import axios from "axios";
+import {getDistanceFromLatLon, getBearing, destinationPoint} from "~/classes/LocationsLib";
+import {FeatureCollection, FeatureCollectionLine} from "~/classes/FeatureCollection";
 
 export default {
   name: "MapBoxComponent",
   data: () => ({
     mapRef : null,
-    busses : JSON.parse(JSON.stringify(emptyFeatureCollection)),
-    bus_stops : JSON.parse(JSON.stringify(emptyFeatureCollection)),
-    subway_stops : JSON.parse(JSON.stringify(emptyFeatureCollection)),
-    empty : JSON.parse(JSON.stringify(emptyFeatureCollection)),
+    busses : new FeatureCollection(),
+    bus_stops : new FeatureCollection(),
+    subway_stops : new FeatureCollection(),
+    empty : new FeatureCollection(),
     initialized : false,
     previousData: null,
+    debug: true,
     routes: {},
-    geojson : {
-      type: 'FeatureCollection',
-      features: [
-        {
-          type: 'Feature',
-          properties: {},
-          geometry: {
-            coordinates: [
-                [-1.7630257931795086, 48.15157592711489],
-                [-1.763066, 48.151553],
-              [-1.656946, 48.114572]
-            ],
-            type: 'LineString'
-          }
-        }
-      ]
-    }
+    debugDirectionLines : new FeatureCollectionLine(),
   }),
   watch: {
     busLines: {
@@ -47,8 +33,7 @@ export default {
         for(let i = 0; i<this.busLines.length; i++){
           this.mapRef.setLayoutProperty(this.busLines[i].layerID, 'visibility', this.busLines[i].visible ? 'visible' : 'none');
         }
-      },
-      deep: true
+      }
     },
   },
   props: {
@@ -68,7 +53,10 @@ export default {
       const runtimeConfig = useRuntimeConfig();
       this.initialized = true;
 
+      // Set mapbox token
       mapboxgl.accessToken = runtimeConfig.public.mapboxAccessToken;
+
+      // Create map
       this.mapRef = new mapboxgl.Map({
         container: 'mapDiv',
         style: 'mapbox://styles/jeanbombeur/clbm382qs000l14mu0ayx6zxi',
@@ -84,172 +72,124 @@ export default {
       });
 
       this.busses = data;
-
       this.mapRef.on('load', () => {
 
+        // create the bus image logo
         const image = new Image(100, 100);
         image.src = BusLogo;
 
         // add image to the active style and make it SDF-enabled
         this.mapRef.addImage('bus-icon', image, { sdf: true });
 
-          this.mapRef.addSource('line', {
-            type: 'geojson',
-            data: this.geojson
-          });
+        // Add sources of data to the map
+        const sources = [
+          {id : "debugDirectionLines", data : this.debugDirectionLines},
+          {id : "busses", data : this.busses},
+          {id : "busStop", data : this.bus_stops},
+          {id : "subwayStation", data : this.subway_stops}];
 
-          this.mapRef.addSource('busses', {
+        for(const source of sources){
+          this.mapRef.addSource(source.id, {
             'type': 'geojson',
-            'data': this.busses
+            'data': source.data
           });
+        }
 
-          this.mapRef.addSource('busStop', {
-            'type': 'geojson',
-            'data': this.bus_stops
-          });
-
-          this.mapRef.addSource('subwayStation', {
-            'type': 'geojson',
-            'data': this.subway_stops
-          });
-
-          this.mapRef.addLayer({
-            type: 'line',
-            source: 'line',
-            id: 'line-background',
-            paint: {
-              'line-color': 'red',
-              'line-width': 6,
-              'line-opacity': 1
-            }
-          });
-
-          for(const feature of data.features) {
-            const symbol = "bus-icon"//"BSicon_BUS"//feature.properties.icon;
-            const layerID = "bus-line-" + feature.properties.line;
-
-            if (!this.mapRef.getLayer(layerID)) {
-              this.mapRef.addLayer({
-                'id': layerID,
-                'type': 'symbol',
-                'source': 'busses',
-                'layout': {
-                  'icon-image': `${symbol}`,
-                  'icon-size': 0.35,
-                  'icon-allow-overlap': true
-                },
-                "paint": {
-                  "icon-color": "#1f89a9"
-                },
-                'filter': ['==', 'line', layerID.split("-")[2]]
-              });
-              this.busLines.push(new BusLayer(layerID, feature.properties.line));
-            }
+        // Create debug layer (for direction vectors)
+        this.mapRef.addLayer({
+          type: 'line',
+          source: 'debugDirectionLines',
+          id: 'line-background',
+          paint: {
+            'line-color': 'red',
+            'line-width': 6,
+            'line-opacity': 1
           }
+        });
 
-        console.log("Start animation");
+        // Create all bus layers
+        for(const feature of data.features) {
+          const symbol = "bus-icon"
+          const layerID = "bus-line-" + feature.properties.line;
+
+          if (!this.mapRef.getLayer(layerID)) {
+            this.mapRef.addLayer({
+              'id': layerID,
+              'type': 'symbol',
+              'source': 'busses',
+              'layout': {
+                'icon-image': `${symbol}`,
+                'icon-size': 0.35,
+                'icon-allow-overlap': true
+              },
+              "paint": {
+                "icon-color": "#1f89a9"
+              },
+              'filter': ['==', 'line', layerID.split("-")[2]]
+            });
+            this.busLines.push(new BusLayer(layerID, feature.properties.line));
+          }
+        }
+
         this.animate();
-
       });
     },
     animate(){
       if(this.previousData !== null){
-        // vitesse 20km/h, 100ms actualisation, vitesse en m/100ms = 0.555555
-        let newFeatures = [];
+        let debugFeatures = [];
         this.previousData.features.forEach((feature, i) => {
           if(feature === undefined || feature.geometry === undefined || feature.geometry.coordinates === undefined){
             return;
           }
-          let newFeature = {
-            type: 'Feature',
-            properties: {},
-            geometry: {
-              coordinates: [],
-              type: 'LineString'
-            }};
 
           const currentCoordinates = feature.geometry.coordinates;
+          const distance = 1.111; // vitesse 20km/h
           let nextCoor = this.routes[feature.properties.line+"_"+feature.properties.sens];
-          if(nextCoor === undefined){return;}
+          if(nextCoor === undefined || nextCoor.length <= feature.properties.nextindex){return;}
           nextCoor = nextCoor[feature.properties.nextindex];
           if(nextCoor === undefined){return;}
 
-          const bearing = this.getBearing(currentCoordinates[1], currentCoordinates[0], nextCoor[0], nextCoor[1]);
-          newFeature.geometry.coordinates = [[currentCoordinates[0], currentCoordinates[1]], [nextCoor[1], nextCoor[0]]];
-          newFeatures.push(newFeature);
+          const distanceWithNext = getDistanceFromLatLon(currentCoordinates[1], currentCoordinates[0], nextCoor[0], nextCoor[1])*1000;
+          if(distanceWithNext < distance){
+            feature.properties.nextindex++;
+            feature.geometry.coordinates = [nextCoor[1], nextCoor[0]];
+            return;
+          }
 
-          const distance = 0.55;
-          const nextPoint = this.destinationPoint(currentCoordinates[1], currentCoordinates[0], distance, bearing);
+          const bearing = getBearing(currentCoordinates[1], currentCoordinates[0], nextCoor[0], nextCoor[1]);
+          if(this.debug){
+            let newFeature = {
+              type: 'Feature',
+              properties: {},
+              geometry: {
+                coordinates: [],
+                type: 'LineString'
+              }};
+
+            newFeature.geometry.coordinates = [[currentCoordinates[0], currentCoordinates[1]], [nextCoor[1], nextCoor[0]]];
+            debugFeatures.push(newFeature);
+          }
+
+          const nextPoint = destinationPoint(currentCoordinates[1], currentCoordinates[0], distance, bearing);
           feature.geometry.coordinates = [nextPoint[1], nextPoint[0]];
         });
 
-        this.geojson.features = newFeatures;
-        this.mapRef.getSource('line').setData(this.geojson);
         this.mapRef.getSource('busses').setData(this.previousData);
+        if(this.debug){
+          this.debugDirectionLines.features = debugFeatures;
+          this.mapRef.getSource('debugDirectionLines').setData(this.debugDirectionLines);
+        }
       }
 
-      setTimeout(() => {requestAnimationFrame(this.animate)}, 250);
+      setTimeout(() => {requestAnimationFrame(this.animate)}, 200);
     },
 
-    // https://stackoverflow.com/questions/3932502/calculate-angle-between-two-latitude-longitude-points
-    getBearing(lat1, long1, lat2, long2) {
-      let dLon = (long2 - long1);
-
-      let y = Math.sin(dLon) * Math.cos(lat2);
-      let x = Math.cos(lat1) * Math.sin(lat2) - Math.sin(lat1)
-          * Math.cos(lat2) * Math.cos(dLon);
-
-      let brng = Math.atan2(y, x);
-
-      var pi = Math.PI;
-      brng = brng * (180/pi);
-      brng = (brng + 360) % 360;
-      brng = 360 - brng;
-
-      return brng
-    },
-
-    // source : (DaveAlden) https://stackoverflow.com/questions/19352921/how-to-use-direction-angle-and-speed-to-calculate-next-times-latitude-and-longi
-    destinationPoint(lat, lon, distance, bearing) {
-      var radius = 6371e3; // (Mean) radius of earth
-
-      var toRadians = function(v) { return v * Math.PI / 180; };
-      var toDegrees = function(v) { return v * 180 / Math.PI; };
-
-      // sinφ2 = sinφ1·cosδ + cosφ1·sinδ·cosθ
-      // tanΔλ = sinθ·sinδ·cosφ1 / cosδ−sinφ1·sinφ2
-      // see mathforum.org/library/drmath/view/52049.html for derivation
-
-      var δ = Number(distance) / radius; // angular distance in radians
-      var θ = toRadians(Number(bearing));
-
-      var φ1 = toRadians(Number(lat));
-      var λ1 = toRadians(Number(lon));
-
-      var sinφ1 = Math.sin(φ1), cosφ1 = Math.cos(φ1);
-      var sinδ = Math.sin(δ), cosδ = Math.cos(δ);
-      var sinθ = Math.sin(θ), cosθ = Math.cos(θ);
-
-      var sinφ2 = sinφ1*cosδ + cosφ1*sinδ*cosθ;
-      var φ2 = Math.asin(sinφ2);
-      var y = sinθ * sinδ * cosφ1;
-      var x = cosδ - sinφ1 * sinφ2;
-      var λ2 = λ1 + Math.atan2(y, x);
-
-      return [toDegrees(φ2), (toDegrees(λ2)+540)%360-180]; // normalise to −180..+180°
-    },
     updateMap(data){
       this.mapRef.getSource('busses').setData(data);
-    },
-    updateLine(){
-      //this.mapRef.getSource('line').setData(this.geojson);
-      console.log("Update line")
-      console.log(this.geojson)
     },
   },
   mounted() {
     let webSocket = new WebSocket("ws://localhost:4000");
-    console.log("Initialize WebSocket")
 
     webSocket.onopen = (event) => {
       webSocket.send("bus");
@@ -257,7 +197,6 @@ export default {
     };
 
     webSocket.onmessage = (event) => {
-      console.log("WebSocket message received")
       let data = JSON.parse(event.data);
       this.previousData = data;
       if(!this.initialized) this.loadMapFirstTime(data);
@@ -271,9 +210,6 @@ export default {
         headers: {"Access-Control-Allow-Origin": "*"}
       }).then(function (response) {
         ref.routes = response.data;
-        //ref.geojson.features[0].geometry.coordinates = ref.routes["C1_0"].map((array) => {return [array[1], array[0]]});
-        console.log(ref.routes)
-        setTimeout(() => {ref.updateLine()}, 1000);
       })
     } catch (e){
       console.log(e)
