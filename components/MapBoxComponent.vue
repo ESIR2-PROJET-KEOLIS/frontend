@@ -1,5 +1,5 @@
 <template>
-  <div id="mapDiv">
+  <div id="mapDiv" ref="mapDiv">
 
   </div>
   <img src="~/assets/icons/bus.png" alt="bus"  style="display: none; pointer-events: none" ref="icon-bus">
@@ -73,6 +73,13 @@ export default {
 
       this.busses = data;
       this.mapRef.on('load', () => {
+
+        // Set canvas attribute to improve performance
+        try {
+          this.$refs["mapDiv"].querySelector('.mapboxgl-canvas-container').childNodes[0].setAttribute("willReadFrequently", "true")
+        } catch (e) {
+          console.log("Error setting canvas attribute willReadFrequently to true");
+        }
 
         // create the bus image logo
         const image = new Image(100, 100);
