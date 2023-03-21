@@ -3,6 +3,12 @@
 
   </div>
   <img src="~/assets/icons/bus.png" alt="bus"  style="display: none; pointer-events: none" ref="icon-bus">
+  <div class="alert shadow-lg bg-neutral">
+    <div>
+      <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-info flex-shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+      <span class="text-base">Real-time, Last updated : {{lastUpdated}}s</span>
+    </div>
+  </div>
 </template>
 
 <script>
@@ -23,9 +29,11 @@ export default {
     empty : new FeatureCollection(),
     initialized : false,
     previousData: null,
-    debug: true,
+    debug: false,
     routes: {},
     debugDirectionLines : new FeatureCollectionLine(),
+    lastUpdated: 0,
+    lastUpdatedDate: new Date()
   }),
   watch: {
     busLines: {
@@ -188,6 +196,8 @@ export default {
         }
       }
 
+      this.lastUpdated = Math.floor((new Date().getTime() - this.lastUpdatedDate.getTime())/1000);
+
       setTimeout(() => {requestAnimationFrame(this.animate)}, 200);
     },
 
@@ -206,6 +216,7 @@ export default {
     webSocket.onmessage = (event) => {
       let data = JSON.parse(event.data);
       this.previousData = data;
+      this.lastUpdatedDate = new Date();
       if(!this.initialized) this.loadMapFirstTime(data);
       else this.updateMap(data);
     }
@@ -231,5 +242,13 @@ export default {
   width: 100%;
   height: 100vh;
   overflow: hidden;
+}
+.alert{
+  position: absolute;
+  bottom: 10px;
+  left: 10px;
+  z-index: 1000;
+  max-width: 17vw;
+
 }
 </style>
