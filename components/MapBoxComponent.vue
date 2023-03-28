@@ -33,7 +33,8 @@ export default {
     routes: {},
     debugDirectionLines : new FeatureCollectionLine(),
     lastUpdated: 0,
-    lastUpdatedDate: new Date()
+    lastUpdatedDate: new Date(),
+    busVisible: true,
   }),
   watch: {
     busLines: {
@@ -52,10 +53,13 @@ export default {
   },
   methods:{
     changeVisibilityBus(value){
-      if(value)
+      if(value){
+        this.busVisible = true;
         this.mapRef.getSource('busses').setData(this.busses);
-      else
+      } else {
+        this.busVisible = false;
         this.mapRef.getSource('busses').setData(this.empty);
+      }
     },
     loadMapFirstTime(data){
       const runtimeConfig = useRuntimeConfig();
@@ -189,7 +193,7 @@ export default {
           feature.geometry.coordinates = [nextPoint[1], nextPoint[0]];
         });
 
-        this.mapRef.getSource('busses').setData(this.previousData);
+        if(this.busVisible) this.mapRef.getSource('busses').setData(this.previousData);
         if(this.debug){
           this.debugDirectionLines.features = debugFeatures;
           this.mapRef.getSource('debugDirectionLines').setData(this.debugDirectionLines);
@@ -202,6 +206,7 @@ export default {
     },
 
     updateMap(data){
+      console.log("refreshed", data)
       this.mapRef.getSource('busses').setData(data);
     },
   },
