@@ -1,9 +1,27 @@
 <template>
   <div class="btn-group">
     <div class="dropdown dropdown-end dropdown-hover">
-      <label class="btn">
+      <button class="btn">
+        <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="0 0 24 24"><path d="M15,3V7.59L7.59,15H3V21H9V16.42L16.42,9H21V3M17,5H19V7H17M5,17H7V19H5" /></svg>
+      </button>
+      <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 overflow-y-auto grid grid-col-1 max-h-96 overflow-x-hidden">
+        <label class="input-group mb-1">
+          <input type="text" placeholder="C5" class="input input-bordered h-10" style="width: 120px;" @input="changeFilter"/>
+          <span>
+            <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M21 21l-6-6m2-5a7 7 0 11-14 0 7 7 0 0114 0z" /></svg>
+          </span>
+        </label>
+        <dropdown-checkbox v-for="(layer, i) in filteredLayers" :value="layer.visible" @changeValue="changeLayerVisibility($event, i)" @doubleClick="changeUniqueLayerVisibility(i)">
+          <template #svg>
+            <img v-if="pictoLoaded && picto[layer.lineName]" :src="picto[layer.lineName].src" style="width: 22px; height: 22px;"/>
+          </template>
+        </dropdown-checkbox>
+      </ul>
+    </div>
+    <div class="dropdown dropdown-end dropdown-hover">
+      <button class="btn no-border">
         <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="5 5 36 36" stroke="currentColor"><path d="M12.45 42q-.65 0-1.15-.375-.5-.375-.5-.975v-4.2q-1.45-.8-2.125-2.3Q8 32.65 8 30.95V11.1q0-3.7 3.825-5.4Q15.65 4 24.05 4q8.3 0 12.125 1.7Q40 7.4 40 11.1v19.85q0 1.7-.675 3.2-.675 1.5-2.125 2.3v4.2q0 .6-.5.975T35.55 42h-.95q-.7 0-1.2-.375t-.5-.975V37.9H15.1v2.75q0 .6-.5.975T13.4 42Zm11.6-32.2H37 11h13.05Zm8.85 14.65H11h26-4.1Zm-21.9-3h26V12.8H11Zm5.3 10.95q1.15 0 1.95-.8t.8-1.95q0-1.15-.8-1.95t-1.95-.8q-1.15 0-1.95.8t-.8 1.95q0 1.15.8 1.95t1.95.8Zm15.4 0q1.15 0 1.95-.8t.8-1.95q0-1.15-.8-1.95t-1.95-.8q-1.15 0-1.95.8t-.8 1.95q0 1.15.8 1.95t1.95.8ZM11 9.8h26q-1.2-1.3-4.6-2.05Q29 7 24.05 7q-5.9 0-9.05.675-3.15.675-4 2.125Zm4.1 25.1h17.8q1.75 0 2.925-1.35Q37 32.2 37 30.45v-6H11v6q0 1.75 1.175 3.1T15.1 34.9Z"/></svg>
-      </label>
+      </button>
       <ul tabindex="0" class="dropdown-content menu p-2 shadow bg-base-100 rounded-box w-52 overflow-y-auto grid grid-col-1 max-h-96 overflow-x-hidden">
         <label class="input-group mb-1">
           <input type="text" placeholder="C5" class="input input-bordered h-10" style="width: 120px;" @input="changeFilter"/>
@@ -89,5 +107,7 @@ export default defineComponent({
 </script>
 
 <style scoped>
-
+.no-border{
+  border-radius: 0 !important;
+}
 </style>
