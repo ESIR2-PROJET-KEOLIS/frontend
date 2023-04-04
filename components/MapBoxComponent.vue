@@ -36,15 +36,6 @@ export default {
     lastUpdatedDate: new Date(),
     busVisible: true,
   }),
-  watch: {
-    busLines: {
-      handler(val, oldVal) {
-        for(let i = 0; i<this.busLines.length; i++){
-          this.mapRef.setLayoutProperty(this.busLines[i].layerID, 'visibility', this.busLines[i].visible ? 'visible' : 'none');
-        }
-      }
-    },
-  },
   props: {
     busLines: {
       type: Array,
@@ -61,6 +52,11 @@ export default {
         this.mapRef.getSource('busses').setData(this.empty);
       }
     },
+      updateBusesLayersVisibility(){
+          for(let i = 0; i<this.busLines.length; i++){
+              this.mapRef.setLayoutProperty(this.busLines[i].layerID, 'visibility', this.busLines[i].visible ? 'visible' : 'none');
+          }
+      },
     loadMapFirstTime(data){
       const runtimeConfig = useRuntimeConfig();
       this.initialized = true;

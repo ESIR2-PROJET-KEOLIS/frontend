@@ -9,7 +9,7 @@
                     @changeStopVisibility="changeStopVisibility"
                     @changeBusLineVisibility="changeBusLineVisibility"></layer-menu>
         <map-box ref="mapBoxComp" :busLines="busLines"></map-box>
-        <map-btn-grp drawerFor="my-drawer" id="buttons" :layers="busLines"></map-btn-grp>
+        <map-btn-grp drawerFor="my-drawer" id="buttons" :layers="busLines" @changeBusLayerVisibility="refreshBusLayer"></map-btn-grp>
       </template>
 
       <template #drawer-content>
@@ -89,6 +89,9 @@ export default defineComponent({
     },
   },
   methods:{
+      refreshBusLayer(){
+          this.$refs.mapBoxComp.updateBusesLayersVisibility();
+      },
     changeTime(value: number){
       if(this.realTime) return;
       if(!isNaN(value)) this.simulationInfo.setHourSimulated(+value);
