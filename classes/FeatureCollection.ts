@@ -12,9 +12,9 @@ export class FeatureCollectionLine extends FeatureCollection{
 
 export class Geometry {
     type: string;
-    coordinates: number[];
+    coordinates: number[] | number[][];
 
-    constructor(type: string, coordinates: number[]) {
+    constructor(type: string, coordinates: number[] | number[][]) {
         this.type = type;
         this.coordinates = coordinates;
     }
