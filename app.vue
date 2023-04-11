@@ -1,14 +1,18 @@
 <template>
     <div>
         <drawer drawerFor="my-drawer">
-
             <template #page-content>
                 <layer-menu id="layer"
                             :busVisibility="busVisible"
                             :stopVisibility="stopVisible"
                             @changeStopVisibility="changeStopVisibility"
                             @changeBusLineVisibility="changeBusLineVisibility"></layer-menu>
-                <map-box ref="mapBoxComp" :busLines="busLines" :linesHighlight="linesHighlight"></map-box>
+                <map-box ref="mapBoxComp"
+                         :busLines="busLines"
+                         :linesHighlight="linesHighlight"
+                         :dynamicFrameRate="dynamicFrameRate"
+                         :busBearing="busBearing"
+                ></map-box>
                 <map-btn-grp
                     drawerFor="my-drawer"
                     id="buttons"
@@ -16,18 +20,25 @@
                     :linesHighlight="linesHighlight"
                     @changeBusLayerVisibility="refreshBusLayer"
                     @changeBusLineVisibility="refreshLines"></map-btn-grp>
+                <label class="btn btnSettings" for="settings">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="5 5 36 36" stroke="currentColor"><path d="M6 36v-3h36v3Zm0-10.5v-3h36v3ZM6 15v-3h36v3Z"/></svg>
+                </label>
             </template>
-
             <template #drawer-content>
-                <h1 class="text-center text-lg mb-1">Visualisation en Temps réel</h1>
-                <toggle-btn text="Temps Réel" v-model:checked="realTime" @toggle="toggleRealTime"></toggle-btn>
+                <h1 class="text-center text-lg mb-1">Real Time visualization</h1>
+                <toggle-btn text="Real Time" v-model:checked="realTime" @toggle="toggleRealTime"></toggle-btn>
                 <div class="divider"></div>
                 <h1 class="text-center text-lg mb-4"> Simulation</h1>
                 <day-selector :disabled="realTime" :checkIndex="currentDaySimulated" @change="changeDay"></day-selector>
                 <slider :disabled="realTime" :value="simulatedHourSlider" :min="0" :max="1439" @change="changeTime"></slider>
                 <p class="text-center text-lg mb-4"> {{simulatedHour}} </p>
+                <div class="divider"></div>
+                <h1 class="text-center text-lg mb-1">Settings</h1>
+                <toggle-btn text="Dynamic frame rate" v-model:checked="dynamicFrameRate" @toggle="toggleDynFPS"></toggle-btn>
+                <slider :disabled="dynamicFrameRate" :value="fps" :min="4" :max="60" @change="changeFPS"></slider>
+                <p class="text-center text-lg mb-4"> {{fpsText}} </p>
+                <toggle-btn text="Bus Rotation" v-model:checked="busBearing"></toggle-btn>
             </template>
-
         </drawer>
     </div>
 </template>
@@ -48,6 +59,14 @@
     left: 1rem;
     z-index: 100;
 }
+
+.btnSettings{
+    position: fixed;
+    bottom: 1rem;
+    right: 1rem;
+    z-index: 100;
+    cursor: pointer;
+}
 </style>
 
 <script lang="ts">
@@ -67,7 +86,10 @@ export default defineComponent({
         busLines : [],
         linesHighlight: [],
         busVisible: true,
-        stopVisible: true
+        stopVisible: true,
+        dynamicFrameRate: true,
+        fps: 40,
+        busBearing: true
     }),
     components: {
         "map-box" : MapBoxComponent,
@@ -94,6 +116,10 @@ export default defineComponent({
             if(!this.realTime && this.simulationInfo !== null && this.simulationInfo !== undefined) return this.simulationInfo.getDaySimulated();
             return 0;
         },
+        fpsText() : string {
+            if(this.dynamicFrameRate) return "";
+            return "FPS : "+this.fps;
+        }
     },
     methods:{
         refreshBusLayer(){
@@ -121,6 +147,17 @@ export default defineComponent({
             this.busVisible = value;
             this.$refs.mapBoxComp.changeVisibilityBus(value);
         },
+        changeFPS(value : number){
+            if(!isNaN(value)){
+                this.fps = value;
+                this.$refs.mapBoxComp.setFPS(value);
+            }
+        },
+        toggleDynFPS(value: boolean){
+            if(!value){
+                this.$refs.mapBoxComp.setFPS(this.fps);
+            }
+        }
     }
 });
 
