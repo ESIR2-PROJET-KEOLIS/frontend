@@ -36,6 +36,8 @@ export default {
         lastUpdatedDate: new Date(),
         busVisible: true,
         displayedRoutes: new FeatureCollection(),
+        refreshTimeout: 25.0,
+        lastAnimationExecutionTime: 0
     }),
     props: {
         busLines: {
@@ -45,6 +47,14 @@ export default {
         linesHighlight:{
             type: Array,
             default: []
+        },
+        dynamicFrameRate:{
+            type: Boolean,
+            default: true
+        },
+        busBearing:{
+            type: Boolean,
+            default: true
         },
     },
     methods:{
@@ -186,7 +196,8 @@ export default {
                             'layout': {
                                 'icon-image': `${symbol}`,
                                 'icon-size': 0.35,
-                                'icon-allow-overlap': true
+                                'icon-allow-overlap': true,
+                                'icon-rotate': ['get', 'rotation']
                             },
                             "paint": {
                                 "icon-color": "#1f89a9"
@@ -204,15 +215,16 @@ export default {
             });
         },
         animate(){
+            let start = Date.now();
             if(this.previousData !== null){
                 let debugFeatures = [];
+                const distance = 20000.0/3600.0*((this.refreshTimeout)/1000.0);
                 this.previousData.features.forEach((feature, i) => {
                     if(feature === undefined || feature.geometry === undefined || feature.geometry.coordinates === undefined){
                         return;
                     }
 
                     const currentCoordinates = feature.geometry.coordinates;
-                    const distance = 1.111; // vitesse 20km/h
                     let nextCoor = this.routes[feature.properties.line+"_"+feature.properties.sens];
                     if(nextCoor === undefined || nextCoor.length <= feature.properties.nextindex){return;}
                     nextCoor = nextCoor[feature.properties.nextindex];
@@ -241,6 +253,7 @@ export default {
 
                     const nextPoint = destinationPoint(currentCoordinates[1], currentCoordinates[0], distance, bearing);
                     feature.geometry.coordinates = [nextPoint[1], nextPoint[0]];
+                    feature.properties.rotation = this.busBearing ? bearing+90 : 0;
                 });
 
                 if(this.busVisible) this.mapRef.getSource('busses').setData(this.previousData);
@@ -249,15 +262,23 @@ export default {
                     this.mapRef.getSource('debugDirectionLines').setData(this.debugDirectionLines);
                 }
             }
+            this.lastAnimationExecutionTime = (Date.now() - start).toFixed(1);
+            if(this.dynamicFrameRate){
+                this.refreshTimeout = this.lastAnimationExecutionTime;
+            }
 
             this.lastUpdated = Math.floor((new Date().getTime() - this.lastUpdatedDate.getTime())/1000);
 
-            setTimeout(() => {requestAnimationFrame(this.animate)}, 200);
+            setTimeout(() => {requestAnimationFrame(this.animate)}, this.dynamicFrameRate ? 0 : Math.max(0, this.refreshTimeout-this.lastAnimationExecutionTime));
         },
 
         updateMap(data){
             console.log("refreshed", data)
             this.mapRef.getSource('busses').setData(data);
+        },
+        setFPS(fps){
+            if(fps===0) this.refreshTimeout = 100;
+            else this.refreshTimeout = 1000.0/fps.toFixed(1);
         },
     },
     mounted() {
@@ -289,7 +310,7 @@ export default {
             console.log(e)
         }
 
-    }
+    },
 }
 </script>
 
