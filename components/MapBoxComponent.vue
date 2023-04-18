@@ -6,7 +6,10 @@
     <div class="alert shadow-lg bg-neutral">
         <div>
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-info flex-shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
-            <span class="text-base">Real-time, Last updated : {{lastUpdated}}s</span>
+            <span class="text-base">
+                {{realtimeEnabled ? 'Real-time' : 'Simulation' }},
+                {{ realtimeEnabled ? 'Last updated ' : statusMessage }}
+                : {{ realtimeEnabled? lastUpdatedRT : lastUpdatedSim }}s</span>
         </div>
     </div>
 </template>
@@ -18,26 +21,29 @@ import BusLogo from '~/assets/icons/bus.png';
 import axios from "axios";
 import {getDistanceFromLatLon, getBearing, destinationPoint} from "~/classes/LocationsLib";
 import {Feature, FeatureCollection, FeatureCollectionLine, Geometry} from "~/classes/FeatureCollection";
+import {getBusPositionSimulation, SimulationState} from "~/classes/SimulationLib";
 
 export default {
     name: "MapBoxComponent",
     data: () => ({
         mapRef : null,
-        busses : new FeatureCollection(),
+        simulatedData : new FeatureCollection(),
         bus_stops : new FeatureCollection(),
         subway_stops : new FeatureCollection(),
         empty : new FeatureCollection(),
         initialized : false,
-        previousData: null,
-        debug: false,
+        realTimeData: new FeatureCollection(),
         routes: {},
         debugDirectionLines : new FeatureCollectionLine(),
-        lastUpdated: 0,
-        lastUpdatedDate: new Date(),
+        lastUpdatedRT: 0,
+        lastUpdatedSim: 0,
+        lastUpdatedDateRT: new Date(),
+        lastUpdatedDateSim: new Date(),
         busVisible: true,
         displayedRoutes: new FeatureCollection(),
-        refreshTimeout: 25.0,
-        lastAnimationExecutionTime: 0
+        refreshTimeout: 100.0,
+        lastAnimationExecutionTime: 0,
+        statusMessage: SimulationState.READY,
     }),
     props: {
         busLines: {
@@ -56,12 +62,27 @@ export default {
             type: Boolean,
             default: true
         },
+        debug:{
+            type: Boolean,
+            default: false
+        },
+        realtimeEnabled:{
+            type: Boolean,
+            default: true
+        },
     },
     methods:{
+        switchDebug(value){
+            if(!value){
+                this.debugDirectionLines.features = [];
+                this.mapRef.getSource('debugDirectionLines').setData(this.debugDirectionLines);
+            }
+        },
         changeVisibilityBus(value){
             if(value){
                 this.busVisible = true;
-                this.mapRef.getSource('busses').setData(this.busses);
+                if(this.realtimeEnabled) this.mapRef.getSource('busses').setData(this.realTimeData);
+                else this.mapRef.getSource('busses').setData(this.simulatedData);
             } else {
                 this.busVisible = false;
                 this.mapRef.getSource('busses').setData(this.empty);
@@ -108,7 +129,7 @@ export default {
                 ),
             });
 
-            this.busses = data;
+            this.realTimeData = data;
             this.mapRef.on('load', () => {
 
                 // Set canvas attribute to improve performance
@@ -128,7 +149,7 @@ export default {
                 // Add sources of data to the map
                 const sources = [
                     {id : "debugDirectionLines", data : this.debugDirectionLines},
-                    {id : "busses", data : this.busses},
+                    {id : "busses", data : this.realTimeData},
                     {id : "busStop", data : this.bus_stops},
                     {id : "subwayStation", data : this.subway_stops},
                     {id : "displayedRoutes", data : {
@@ -216,10 +237,11 @@ export default {
         },
         animate(){
             let start = Date.now();
-            if(this.previousData !== null){
+            let data = this.realtimeEnabled ? this.realTimeData : this.simulatedData;
+            if(data !== null){
                 let debugFeatures = [];
                 const distance = 20000.0/3600.0*((this.refreshTimeout)/1000.0);
-                this.previousData.features.forEach((feature, i) => {
+                data.features.forEach((feature, i) => {
                     if(feature === undefined || feature.geometry === undefined || feature.geometry.coordinates === undefined){
                         return;
                     }
@@ -256,7 +278,9 @@ export default {
                     feature.properties.rotation = this.busBearing ? bearing+90 : 0;
                 });
 
-                if(this.busVisible) this.mapRef.getSource('busses').setData(this.previousData);
+                if(this.busVisible) {
+                    this.mapRef.getSource('busses').setData(data);
+                }
                 if(this.debug){
                     this.debugDirectionLines.features = debugFeatures;
                     this.mapRef.getSource('debugDirectionLines').setData(this.debugDirectionLines);
@@ -267,18 +291,42 @@ export default {
                 this.refreshTimeout = this.lastAnimationExecutionTime;
             }
 
-            this.lastUpdated = Math.floor((new Date().getTime() - this.lastUpdatedDate.getTime())/1000);
+            this.lastUpdatedRT = Math.floor((new Date().getTime() - this.lastUpdatedDateRT.getTime())/1000);
+            this.lastUpdatedSim = Math.floor((new Date().getTime() - this.lastUpdatedDateSim.getTime())/1000);
 
             setTimeout(() => {requestAnimationFrame(this.animate)}, this.dynamicFrameRate ? 0 : Math.max(0, this.refreshTimeout-this.lastAnimationExecutionTime));
         },
 
         updateMap(data){
-            console.log("refreshed", data)
             this.mapRef.getSource('busses').setData(data);
         },
         setFPS(fps){
             if(fps===0) this.refreshTimeout = 100;
             else this.refreshTimeout = 1000.0/fps.toFixed(1);
+        },
+        onRequestSimulation(simulationInfo){
+            this.mapRef.getSource('busses').setData(this.simulatedData);
+            if(this.statusMessage === SimulationState.READY){
+                this.sendSimulationRequest(simulationInfo);
+            }
+        },
+        sendSimulationRequest(simulationInfo){
+            this.statusMessage = SimulationState.WAITING;
+            this.lastUpdatedDateSim = new Date();
+            getBusPositionSimulation(simulationInfo ,this.updateSimulatedData);
+        },
+        updateSimulatedData(data){
+            this.statusMessage = SimulationState.READY;
+            this.lastUpdatedDateSim = new Date();
+            this.simulatedData.features = [];
+            for (let key of Object.keys(data)) {
+                for (let bus of data[key]) {
+                    if(!bus || !bus.position) continue;
+                    let feature = new Feature(new Geometry("Point", [bus.position[0], bus.position[1]]),
+                        {id: bus.id, sens: bus.sens, line: key, nextindex: bus.next_index_opti, rotation: 0});
+                    this.simulatedData.features.push(feature);
+                }
+            }
         },
     },
     mounted() {
@@ -291,8 +339,8 @@ export default {
 
         webSocket.onmessage = (event) => {
             let data = JSON.parse(event.data);
-            this.previousData = data;
-            this.lastUpdatedDate = new Date();
+            this.realTimeData = data;
+            this.lastUpdatedDateRT = new Date();
             if(!this.initialized) this.loadMapFirstTime(data);
             else this.updateMap(data);
         }

@@ -12,6 +12,8 @@
                          :linesHighlight="linesHighlight"
                          :dynamicFrameRate="dynamicFrameRate"
                          :busBearing="busBearing"
+                         :debug="debug"
+                         :realtimeEnabled="realTime"
                 ></map-box>
                 <map-btn-grp
                     drawerFor="my-drawer"
@@ -20,9 +22,6 @@
                     :linesHighlight="linesHighlight"
                     @changeBusLayerVisibility="refreshBusLayer"
                     @changeBusLineVisibility="refreshLines"></map-btn-grp>
-                <label class="btn btnSettings" for="settings">
-                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="currentColor" viewBox="5 5 36 36" stroke="currentColor"><path d="M6 36v-3h36v3Zm0-10.5v-3h36v3ZM6 15v-3h36v3Z"/></svg>
-                </label>
             </template>
             <template #drawer-content>
                 <h1 class="text-center text-lg mb-1">Real Time visualization</h1>
@@ -32,12 +31,16 @@
                 <day-selector :disabled="realTime" :checkIndex="currentDaySimulated" @change="changeDay"></day-selector>
                 <slider :disabled="realTime" :value="simulatedHourSlider" :min="0" :max="1439" @change="changeTime"></slider>
                 <p class="text-center text-lg mb-4"> {{simulatedHour}} </p>
+                <button :disabled="realTime" class="btn btn-primary" @click="requestSimulation">Request Simulation</button>
                 <div class="divider"></div>
                 <h1 class="text-center text-lg mb-1">Settings</h1>
                 <toggle-btn text="Dynamic frame rate" v-model:checked="dynamicFrameRate" @toggle="toggleDynFPS"></toggle-btn>
                 <slider :disabled="dynamicFrameRate" :value="fps" :min="4" :max="60" @change="changeFPS"></slider>
                 <p class="text-center text-lg mb-4"> {{fpsText}} </p>
                 <toggle-btn text="Bus Rotation" v-model:checked="busBearing"></toggle-btn>
+                <div class="divider"></div>
+                <h1 class="text-center text-lg mb-1">Developer Settings</h1>
+                <toggle-btn text="Debug mode" v-model:checked="debug" @toggle="switchDebug"></toggle-btn>
             </template>
         </drawer>
     </div>
@@ -59,14 +62,6 @@
     left: 1rem;
     z-index: 100;
 }
-
-.btnSettings{
-    position: fixed;
-    bottom: 1rem;
-    right: 1rem;
-    z-index: 100;
-    cursor: pointer;
-}
 </style>
 
 <script lang="ts">
@@ -87,9 +82,10 @@ export default defineComponent({
         linesHighlight: [],
         busVisible: true,
         stopVisible: true,
-        dynamicFrameRate: true,
-        fps: 40,
-        busBearing: true
+        dynamicFrameRate: false,
+        fps: 10,
+        busBearing: false,
+        debug: false
     }),
     components: {
         "map-box" : MapBoxComponent,
@@ -122,6 +118,9 @@ export default defineComponent({
         }
     },
     methods:{
+        requestSimulation(){
+            this.$refs.mapBoxComp.onRequestSimulation(this.simulationInfo);
+        },
         refreshBusLayer(){
             this.$refs.mapBoxComp.updateBusesLayersVisibility();
         },
@@ -157,6 +156,9 @@ export default defineComponent({
             if(!value){
                 this.$refs.mapBoxComp.setFPS(this.fps);
             }
+        },
+        switchDebug(value: boolean){
+            this.$refs.mapBoxComp.switchDebug(value);
         }
     }
 });
