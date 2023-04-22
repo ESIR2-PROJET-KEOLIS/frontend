@@ -42,6 +42,7 @@ export default {
         busVisible: true,
         displayedRoutes: new FeatureCollection(),
         refreshTimeout: 100.0,
+        routesColors: {},
         lastAnimationExecutionTime: 0,
         statusMessage: SimulationState.READY,
     }),
@@ -100,8 +101,8 @@ export default {
                     if(this.routes[this.linesHighlight[i].lineName+"_0"] !== undefined && this.routes[this.linesHighlight[i].lineName+"_0"].length !== undefined){
                         let coordinates0 = this.routes[this.linesHighlight[i].lineName+"_0"].map((route) => {return [route[1], route[0]]});
                         let coordinates1 = this.routes[this.linesHighlight[i].lineName+"_1"].map((route) => {return [route[1], route[0]]});
-                        this.displayedRoutes.features.push(new Feature(new Geometry('LineString', coordinates0), {}));
-                        this.displayedRoutes.features.push(new Feature(new Geometry('LineString', coordinates1), {}));
+                        this.displayedRoutes.features.push(new Feature(new Geometry('LineString', coordinates0), {color: this.routesColor[this.linesHighlight[i].lineName] || "#000"}));
+                        this.displayedRoutes.features.push(new Feature(new Geometry('LineString', coordinates1), {color: this.routesColor[this.linesHighlight[i].lineName] || "#000"}));
                     }
                 }
             }
@@ -152,21 +153,7 @@ export default {
                     {id : "busses", data : this.realTimeData},
                     {id : "busStop", data : this.bus_stops},
                     {id : "subwayStation", data : this.subway_stops},
-                    {id : "displayedRoutes", data : {
-                            type: 'FeatureCollection',
-                            features: [
-                                {
-                                    type: 'Feature',
-                                    properties: {},
-                                    geometry: {
-                                        type: 'LineString',
-                                        coordinates: [
-                                            [48.090176, -1.697363],[48.131306, -1.629006]
-                                        ]
-                                    }
-                                }
-                            ]
-                        }}
+                    {id : "displayedRoutes", data : {type: 'FeatureCollection', features: []}}
                 ];
 
                 for(const source of sources){
@@ -198,7 +185,7 @@ export default {
                         'line-cap': 'round'
                     },
                     paint: {
-                        'line-color': '#d949d6',
+                        'line-color': ['get', 'color'],
                         'line-width': 5,
                         'line-opacity': 1
                     }
@@ -353,6 +340,22 @@ export default {
             }).then(function (response) {
                 console.log("Api lines received");
                 ref.routes = response.data;
+            })
+        } catch (e){
+            console.log(e)
+        }
+
+        try{
+            let ref = this;
+            console.log("Get color request...")
+            axios.get('http://localhost:3500/action/color/line', {
+                headers: {"Access-Control-Allow-Origin": "*"}
+            }).then(function (response) {
+                console.log("Api colors received");
+                ref.routesColor = {};
+                for (let colorline of response.data) {
+                    ref.routesColor[colorline.line] = colorline.lineColor;
+                }
             })
         } catch (e){
             console.log(e)
