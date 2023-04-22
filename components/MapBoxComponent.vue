@@ -3,6 +3,7 @@
 
     </div>
     <img src="~/assets/icons/bus.png" alt="bus"  style="display: none; pointer-events: none" ref="icon-bus">
+    <img src="~/assets/icons/busStop.png" alt="busStop"  style="display: none; pointer-events: none" ref="icon-stop-bus">
     <div class="alert shadow-lg bg-neutral">
         <div>
             <svg xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24" class="stroke-info flex-shrink-0 w-6 h-6"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M13 16h-1v-4h-1m1-4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
@@ -18,6 +19,7 @@
 import mapboxgl from "mapbox-gl";
 import { BusLayer} from "~/classes/BusLayer";
 import BusLogo from '~/assets/icons/bus.png';
+import BusStopLogo from 'assets/icons/busStop.png';
 import axios from "axios";
 import {getDistanceFromLatLon, getBearing, destinationPoint} from "~/classes/LocationsLib";
 import {Feature, FeatureCollection, FeatureCollectionLine, Geometry} from "~/classes/FeatureCollection";
@@ -103,6 +105,9 @@ export default {
                 this.mapRef.getSource('busses').setData(this.empty);
             }
         },
+        changeStopVisibility(value){
+            this.mapRef.setLayoutProperty("busStopLayer", 'visibility', value ? 'visible' : 'none');
+        },
         updateBusesLayersVisibility(){
             for(let i = 0; i<this.busLines.length; i++){
                 this.mapRef.setLayoutProperty(this.busLines[i].layerID, 'visibility', this.busLines[i].visible ? 'visible' : 'none');
@@ -154,12 +159,19 @@ export default {
                     console.log("Error setting canvas attribute willReadFrequently to true");
                 }
 
-                // create the bus image logo
-                const image = new Image(100, 100);
-                image.src = BusLogo;
+                // create the bus stop image logo
+                const imageStop = new Image(100, 100);
+                imageStop.src = BusStopLogo;
 
                 // add image to the active style and make it SDF-enabled
-                this.mapRef.addImage('bus-icon', image, { sdf: true });
+                this.mapRef.addImage('busstop-icon', imageStop, { sdf: true });
+
+                // create the bus image logo
+                const imageBus = new Image(100, 100);
+                imageBus.src = BusLogo;
+
+                // add image to the active style and make it SDF-enabled
+                this.mapRef.addImage('bus-icon', imageBus, { sdf: true });
 
                 // Add sources of data to the map
                 const sources = [
@@ -205,6 +217,21 @@ export default {
                     }
                 });
 
+                // Create layer for bus stops
+                this.mapRef.addLayer({
+                    'id': "busStopLayer",
+                    'type': 'symbol',
+                    'source': 'busStop',
+                    'layout': {
+                        'icon-image': "busstop-icon",
+                        'icon-size': 0.2,
+                        'icon-allow-overlap': true,
+                    },
+                    "paint": {
+                        "icon-color": "#2e43af"
+                    }
+                });
+
                 // Create all bus layers
                 for(const feature of data.features) {
                     const symbol = "bus-icon"
@@ -232,6 +259,8 @@ export default {
                         this.linesHighlight.push(busLayer);
                     }
                 }
+
+                this.loadBusStop();
 
                 this.animate();
             });
@@ -329,6 +358,28 @@ export default {
                 }
             }
         },
+        loadBusStop(){
+            try{
+                let ref = this;
+                console.log("Get bus stop locations request...")
+                axios.get('http://localhost:3500/action/station/bus', {
+                    headers: {"Access-Control-Allow-Origin": "*"}
+                }).then(function (response) {
+                    console.log("bus stop received");
+
+                    let stopParsed = new Set();
+                    let i = 0;
+                    for (let bus_station of response.data) {
+                        if(stopParsed.has(bus_station.position.longitude+","+bus_station.position.latitude)) continue;
+                        stopParsed.add(bus_station.position.longitude+","+bus_station.position.latitude);
+                        ref.bus_stops.features.push(new Feature(new Geometry("Point", [bus_station.position.longitude, bus_station.position.latitude]), {name: bus_station.name}));
+                    }
+                    ref.mapRef.getSource('busStop').setData(ref.bus_stops);
+                })
+            } catch (e){
+                console.log(e)
+            }
+        },
     },
     mounted() {
         let webSocket = new WebSocket("ws://localhost:4000");
@@ -374,7 +425,6 @@ export default {
         } catch (e){
             console.log(e)
         }
-
     },
 }
 </script>
