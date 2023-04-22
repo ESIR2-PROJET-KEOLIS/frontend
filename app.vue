@@ -14,6 +14,7 @@
                          :busBearing="busBearing"
                          :debug="debug"
                          :realtimeEnabled="realTime"
+                         :busColor="busColor"
                 ></map-box>
                 <map-btn-grp
                     drawerFor="my-drawer"
@@ -38,6 +39,7 @@
                 <slider :disabled="dynamicFrameRate" :value="fps" :min="4" :max="60" @change="changeFPS"></slider>
                 <p class="text-center text-lg mb-4"> {{fpsText}} </p>
                 <toggle-btn text="Bus Rotation" v-model:checked="busBearing"></toggle-btn>
+                <toggle-btn text="Bus Color" v-model:checked="busColor"></toggle-btn>
                 <div class="divider"></div>
                 <h1 class="text-center text-lg mb-1">Developer Settings</h1>
                 <toggle-btn text="Debug mode" v-model:checked="debug" @toggle="switchDebug"></toggle-btn>
@@ -85,7 +87,8 @@ export default defineComponent({
         dynamicFrameRate: false,
         fps: 10,
         busBearing: false,
-        debug: false
+        debug: false,
+        busColor: false
     }),
     components: {
         "map-box" : MapBoxComponent,

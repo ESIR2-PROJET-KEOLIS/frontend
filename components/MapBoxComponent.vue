@@ -63,6 +63,10 @@ export default {
             type: Boolean,
             default: true
         },
+        busColor:{
+            type: Boolean,
+            default: false
+        },
         debug:{
             type: Boolean,
             default: false
@@ -70,6 +74,16 @@ export default {
         realtimeEnabled:{
             type: Boolean,
             default: true
+        },
+    },
+    watch: {
+        busColor: function(newVal, oldVal) {
+            for (let layer of this.mapRef.getStyle().layers) {
+                if(layer.id.startsWith("bus")){
+                    let lineName = layer.id.split("-")[2];
+                    this.mapRef.setPaintProperty(layer.id, 'icon-color', newVal ? (this.routesColor[lineName] || "#1f89a9") : "#1f89a9");
+                }
+            }
         },
     },
     methods:{
