@@ -16,6 +16,7 @@
                          :realtimeEnabled="realTime"
                          :busColor="busColor"
                 ></map-box>
+                <error-modal ref="error-modal"></error-modal>
                 <map-btn-grp
                     drawerFor="my-drawer"
                     id="buttons"
@@ -74,6 +75,8 @@ import {MapBoxComponent, MapButtonGroup, DaySelector, LayerMenu} from "#componen
 import ToggleButton from "~/components/generic/ToggleButton.vue";
 import Slider from "~/components/generic/Slider.vue";
 import Drawer from "~/components/generic/Drawer.vue";
+import ErrorModalComp from "~/components/Error-Modal.vue";
+import {ErrorModal} from "@/classes/ErrorModal";
 
 export default defineComponent({
     data: () => ({
@@ -91,6 +94,7 @@ export default defineComponent({
         busColor: false
     }),
     components: {
+        "error-modal" : ErrorModalComp,
         "map-box" : MapBoxComponent,
         "map-btn-grp" : MapButtonGroup,
         "toggle-btn" : ToggleButton,
@@ -163,7 +167,10 @@ export default defineComponent({
         switchDebug(value: boolean){
             this.$refs.mapBoxComp.switchDebug(value);
         }
-    }
+    },
+    mounted(){
+        ErrorModal.initialize(this.$refs["error-modal"]);
+    },
 });
 
 </script>
