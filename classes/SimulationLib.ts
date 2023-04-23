@@ -14,8 +14,12 @@ export function getBusPositionSimulation(simulation : SimulationInfo, callback :
         }).then(function (response) {
             console.log("Simulation data received for "+day+" at "+hour+":"+minute);
             callback(response.data);
-        })
+        }).catch((e) => {
+            console.log(e)
+            errorCallback(e);
+        });
     } catch (e){
+        console.log(e);
         errorCallback(e);
     }
 }

@@ -6,9 +6,11 @@ export function getAPIData(url: string, callback: Function, errorMessage: string
         axios.get(url, {
             headers: {"Access-Control-Allow-Origin": "*"}
             // @ts-ignore
-        }).then(callback);
+        }).then(callback).catch((e) => {
+            console.log(e)
+            ErrorModal.show(errorMessage);
+        });
     } catch (e){
         console.log(e)
-        ErrorModal.show(errorMessage);
     }
 }
