@@ -17,13 +17,15 @@
 
 <script>
 import mapboxgl from "mapbox-gl";
-import { BusLayer} from "~/classes/BusLayer";
+import {BusLayer, lineToLayerID} from "~/classes/BusLayer";
 import BusLogo from '~/assets/icons/bus.png';
 import BusStopLogo from 'assets/icons/busStop.png';
 import axios from "axios";
 import {getDistanceFromLatLon, getBearing, destinationPoint} from "~/classes/LocationsLib";
 import {Feature, FeatureCollection, FeatureCollectionLine, Geometry} from "~/classes/FeatureCollection";
 import {getBusPositionSimulation, SimulationState} from "~/classes/SimulationLib";
+import {createBusLayers, setLayersColor} from "~/classes/DataProcessing";
+import {Config} from "~/classes/Config";
 
 export default {
     name: "MapBoxComponent",
@@ -79,13 +81,8 @@ export default {
         },
     },
     watch: {
-        busColor: function(newVal, oldVal) {
-            for (let layer of this.mapRef.getStyle().layers) {
-                if(layer.id.startsWith("bus")){
-                    let lineName = layer.id.split("-")[2];
-                    this.mapRef.setPaintProperty(layer.id, 'icon-color', newVal ? (this.routesColor[lineName] || "#1f89a9") : "#1f89a9");
-                }
-            }
+        busColor: function(newVal) {
+            setLayersColor(this.mapRef, this.routesColor, newVal);
         },
     },
     methods:{
@@ -96,13 +93,18 @@ export default {
             }
         },
         changeVisibilityBus(value){
+            this.busVisible = value;
             if(value){
-                this.busVisible = true;
-                if(this.realtimeEnabled) this.mapRef.getSource('busses').setData(this.realTimeData);
-                else this.mapRef.getSource('busses').setData(this.simulatedData);
+                let data = this.realtimeEnabled ? this.realTimeData : this.simulatedData;
+                createBusLayers(this.mapRef, data, this.routesColor, this.busColor);
+                this.updateBusesLayersVisibility();
             } else {
-                this.busVisible = false;
-                this.mapRef.getSource('busses').setData(this.empty);
+                for (let layer of this.mapRef.getStyle().layers) {
+                    if(layer.id.startsWith("bus-")){
+                        this.mapRef.removeLayer(layer.id);
+                    }
+                }
+                this.mapRef.removeSource("busses");
             }
         },
         changeStopVisibility(value){
@@ -110,7 +112,7 @@ export default {
         },
         updateBusesLayersVisibility(){
             for(let i = 0; i<this.busLines.length; i++){
-                this.mapRef.setLayoutProperty(this.busLines[i].layerID, 'visibility', this.busLines[i].visible ? 'visible' : 'none');
+                if(this.mapRef.getLayer(this.busLines[i].layerID) !== undefined) this.mapRef.setLayoutProperty(this.busLines[i].layerID, 'visibility', this.busLines[i].visible ? 'visible' : 'none');
             }
         },
         updateLinesVisibility(){
@@ -143,6 +145,7 @@ export default {
                 minzoom: 16,
                 maxPitch: 0,
                 minPitch: 0,
+                performanceMetricsCollection: false,
                 maxBounds: new mapboxgl.LngLatBounds(
                     new mapboxgl.LngLat(-1.776660, 48.044477), //48.044477, -1.776660
                     new mapboxgl.LngLat(-1.563988, 48.188023) //48.188023, -1.563988
@@ -151,32 +154,29 @@ export default {
 
             this.realTimeData = data;
             this.mapRef.on('load', () => {
-
                 // Set canvas attribute to improve performance
                 try {
-                    this.$refs["mapDiv"].querySelector('.mapboxgl-canvas-container').childNodes[0].setAttribute("willReadFrequently", "true")
+                    let canvas = this.mapRef.getCanvas();
+                    canvas.setAttribute("willReadFrequently", "true");
                 } catch (e) {
-                    console.log("Error setting canvas attribute willReadFrequently to true");
+                    console.log("Error setting canvas attribute willReadFrequently to true", e);
                 }
 
                 // create the bus stop image logo
                 const imageStop = new Image(100, 100);
                 imageStop.src = BusStopLogo;
-
                 // add image to the active style and make it SDF-enabled
                 this.mapRef.addImage('busstop-icon', imageStop, { sdf: true });
 
                 // create the bus image logo
                 const imageBus = new Image(100, 100);
                 imageBus.src = BusLogo;
-
                 // add image to the active style and make it SDF-enabled
                 this.mapRef.addImage('bus-icon', imageBus, { sdf: true });
 
                 // Add sources of data to the map
                 const sources = [
                     {id : "debugDirectionLines", data : this.debugDirectionLines},
-                    {id : "busses", data : this.realTimeData},
                     {id : "busStop", data : this.bus_stops},
                     {id : "subwayStation", data : this.subway_stops},
                     {id : "displayedRoutes", data : {type: 'FeatureCollection', features: []}}
@@ -228,40 +228,14 @@ export default {
                         'icon-allow-overlap': true,
                     },
                     "paint": {
-                        "icon-color": "#2e43af"
+                        "icon-color": Config.busStopColor
                     }
                 });
 
                 // Create all bus layers
-                for(const feature of data.features) {
-                    const symbol = "bus-icon"
-                    const layerID = "bus-line-" + feature.properties.line;
-
-                    if (!this.mapRef.getLayer(layerID)) {
-                        this.mapRef.addLayer({
-                            'id': layerID,
-                            'type': 'symbol',
-                            'source': 'busses',
-                            'layout': {
-                                'icon-image': `${symbol}`,
-                                'icon-size': 0.35,
-                                'icon-allow-overlap': true,
-                                'icon-rotate': ['get', 'rotation']
-                            },
-                            "paint": {
-                                "icon-color": "#1f89a9"
-                            },
-                            'filter': ['==', 'line', layerID.split("-")[2]]
-                        });
-                        this.busLines.push(new BusLayer(layerID, feature.properties.line));
-                        let busLayer = new BusLayer(layerID, feature.properties.line);
-                        busLayer.visible = false;
-                        this.linesHighlight.push(busLayer);
-                    }
-                }
+                createBusLayers(this.mapRef, data, this.routesColor, this.busColor);
 
                 this.loadBusStop();
-
                 this.animate();
             });
         },
@@ -327,8 +301,8 @@ export default {
             setTimeout(() => {requestAnimationFrame(this.animate)}, this.dynamicFrameRate ? 0 : Math.max(0, this.refreshTimeout-this.lastAnimationExecutionTime));
         },
 
-        updateMap(data){
-            this.mapRef.getSource('busses').setData(data);
+        updateMapRT(data){
+            if(this.realtimeEnabled) this.mapRef.getSource('busses').setData(data);
         },
         setFPS(fps){
             if(fps===0) this.refreshTimeout = 100;
@@ -393,8 +367,9 @@ export default {
             let data = JSON.parse(event.data);
             this.realTimeData = data;
             this.lastUpdatedDateRT = new Date();
+
             if(!this.initialized) this.loadMapFirstTime(data);
-            else this.updateMap(data);
+            else this.updateMapRT(data);
         }
 
         try{
@@ -420,6 +395,11 @@ export default {
                 ref.routesColor = {};
                 for (let colorline of response.data) {
                     ref.routesColor[colorline.line] = colorline.lineColor;
+                    const layerID = lineToLayerID(colorline.line);
+                    ref.busLines.push(new BusLayer(layerID, colorline.line));
+                    let busLayer = new BusLayer(layerID, colorline.line);
+                    busLayer.visible = false;
+                    ref.linesHighlight.push(busLayer);
                 }
             })
         } catch (e){
