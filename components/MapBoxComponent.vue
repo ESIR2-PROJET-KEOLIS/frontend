@@ -388,6 +388,11 @@ export default {
     mounted() {
         let webSocket = new WebSocket("ws://localhost:4000");
 
+        webSocket.onerror = (event) => {
+            console.log(event);
+            ErrorModal.show("An error occurred while trying to connect to the backend. Please try again later.");
+        };
+
         webSocket.onopen = (event) => {
             webSocket.send("bus");
             console.log("WebSocket Connection established");
