@@ -26,6 +26,8 @@ import {Feature, FeatureCollection, FeatureCollectionLine, Geometry} from "~/cla
 import {getBusPositionSimulation, SimulationState} from "~/classes/SimulationLib";
 import {createBusLayers, setLayersColor} from "~/classes/DataProcessing";
 import {Config} from "~/classes/Config";
+import {getAPIData} from "~/classes/APICalls";
+import {ErrorModal} from "~/classes/ErrorModal";
 
 export default {
     name: "MapBoxComponent",
@@ -224,7 +226,7 @@ export default {
                     'source': 'busStop',
                     'layout': {
                         'icon-image': "busstop-icon",
-                        'icon-size': 0.2,
+                        'icon-size': 0.15,
                         'icon-allow-overlap': true,
                     },
                     "paint": {
@@ -309,7 +311,6 @@ export default {
             else this.refreshTimeout = 1000.0/fps.toFixed(1);
         },
         onRequestSimulation(simulationInfo){
-            this.mapRef.getSource('busses').setData(this.simulatedData);
             if(this.statusMessage === SimulationState.READY){
                 this.sendSimulationRequest(simulationInfo);
             }
@@ -317,19 +318,30 @@ export default {
         sendSimulationRequest(simulationInfo){
             this.statusMessage = SimulationState.WAITING;
             this.lastUpdatedDateSim = new Date();
-            getBusPositionSimulation(simulationInfo ,this.updateSimulatedData);
+            getBusPositionSimulation(simulationInfo ,this.updateSimulatedData, this.onErrorSimulation);
+        },
+        onErrorSimulation(e){
+            console.log("Simulation Error", e);
+            ErrorModal.show("An error occurred while trying to simulate the bus positions. Please try again.");
+            this.statusMessage = SimulationState.READY;
+            this.lastUpdatedDateSim = new Date();
         },
         updateSimulatedData(data){
             this.statusMessage = SimulationState.READY;
             this.lastUpdatedDateSim = new Date();
             this.simulatedData.features = [];
+            let count = 0;
             for (let key of Object.keys(data)) {
                 for (let bus of data[key]) {
                     if(!bus || !bus.position) continue;
+                    count++;
                     let feature = new Feature(new Geometry("Point", [bus.position[0], bus.position[1]]),
                         {id: bus.id, sens: bus.sens, line: key, nextindex: bus.next_index_opti, rotation: 0});
                     this.simulatedData.features.push(feature);
                 }
+            }
+            if(count === 0) {
+                ErrorModal.show("No bus position found for the selected time. Please try again.");
             }
         },
         loadBusStop(){
@@ -354,6 +366,24 @@ export default {
                 console.log(e)
             }
         },
+
+        receiveLinesRoutes(response){
+            console.log("Api lines routes received");
+            this.routes = response.data;
+        },
+        loadColorsAndLines(response){
+            console.log("Api bus colors received");
+            this.routesColor = {};
+            for (let colorline of response.data) {
+                this.routesColor[colorline.line] = colorline.lineColor;
+                const layerID = lineToLayerID(colorline.line);
+                this.busLines.push(new BusLayer(layerID, colorline.line));
+                let busLayer = new BusLayer(layerID, colorline.line);
+                busLayer.visible = false;
+                this.linesHighlight.push(busLayer);
+            }
+        },
+
     },
     mounted() {
         let webSocket = new WebSocket("ws://localhost:4000");
@@ -372,39 +402,8 @@ export default {
             else this.updateMapRT(data);
         }
 
-        try{
-            let ref = this;
-            console.log("Api lines request...")
-            axios.get('http://localhost:3500/lines', {
-                headers: {"Access-Control-Allow-Origin": "*"}
-            }).then(function (response) {
-                console.log("Api lines received");
-                ref.routes = response.data;
-            })
-        } catch (e){
-            console.log(e)
-        }
-
-        try{
-            let ref = this;
-            console.log("Get color request...")
-            axios.get('http://localhost:3500/action/color/line', {
-                headers: {"Access-Control-Allow-Origin": "*"}
-            }).then(function (response) {
-                console.log("Api colors received");
-                ref.routesColor = {};
-                for (let colorline of response.data) {
-                    ref.routesColor[colorline.line] = colorline.lineColor;
-                    const layerID = lineToLayerID(colorline.line);
-                    ref.busLines.push(new BusLayer(layerID, colorline.line));
-                    let busLayer = new BusLayer(layerID, colorline.line);
-                    busLayer.visible = false;
-                    ref.linesHighlight.push(busLayer);
-                }
-            })
-        } catch (e){
-            console.log(e)
-        }
+        getAPIData('http://localhost:3500/lines', this.receiveLinesRoutes, "Error while getting lines routes from backend API. Line visualization and movement interpolation will not work.");
+        getAPIData('http://localhost:3500/action/color/line', this.loadColorsAndLines, "Error while getting color lines from backend API. Color and filtering line of bus will not work.");
     },
 }
 </script>

@@ -1,7 +1,7 @@
 import {SimulationInfo} from "~/classes/SimulationInfo";
 import axios from "axios";
 
-export function getBusPositionSimulation(simulation : SimulationInfo, callback : any){
+export function getBusPositionSimulation(simulation : SimulationInfo, callback : Function, errorCallback : Function){
     try{
         console.log("Bus Position Simulation request...")
         const day = ["sunday", "monday","tuesday","wednesday","thursday", "friday", "saturday"][simulation.getDaySimulated()];
@@ -16,7 +16,7 @@ export function getBusPositionSimulation(simulation : SimulationInfo, callback :
             callback(response.data);
         })
     } catch (e){
-        console.log(e)
+        errorCallback(e);
     }
 }
 
