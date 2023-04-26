@@ -234,8 +234,49 @@ export default {
                     }
                 });
 
+                this.mapRef.on('click', 'busStopLayer', (e) => {
+                    const coordinates = e.features[0].geometry.coordinates.slice();
+                    const name = e.features[0].properties.name;
+
+                    while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+                        coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+                    }
+
+                    new mapboxgl.Popup()
+                        .setLngLat(coordinates)
+                        .setHTML("<strong>"+name+"</strong>")
+                        .addTo(this.mapRef);
+                });
+                this.mapRef.on('mouseenter', 'busStopLayer', () => {
+                    this.mapRef.getCanvas().style.cursor = 'pointer';
+                });
+                this.mapRef.on('mouseleave', 'busStopLayer', () => {
+                    this.mapRef.getCanvas().style.cursor = '';
+                });
+
                 // Create all bus layers
-                createBusLayers(this.mapRef, data, this.routesColor, this.busColor);
+                createBusLayers(this.mapRef, data, this.routesColor, this.busColor, (layerID, line) => {
+                    this.mapRef.on('click', layerID, (e) => {
+                        const coordinates = e.features[0].geometry.coordinates.slice();
+                        const line = e.features[0].properties.line;
+                        let busFilling = "Unknown";
+
+                        while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
+                            coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
+                        }
+
+                        new mapboxgl.Popup()
+                            .setLngLat(coordinates)
+                            .setHTML("<span><strong> Bus line : </strong>"+line+"</span></br><span><strong> Bus Filling Prediction : </strong> "+busFilling+"</span>")
+                            .addTo(this.mapRef);
+                    });
+                    this.mapRef.on('mouseenter', layerID, () => {
+                        this.mapRef.getCanvas().style.cursor = 'pointer';
+                    });
+                    this.mapRef.on('mouseleave', layerID, () => {
+                        this.mapRef.getCanvas().style.cursor = '';
+                    });
+                });
 
                 this.loadBusStop();
                 this.animate();
