@@ -9,3 +9,7 @@ export class BusLayer {
         this.visible = true;
     }
 }
+
+export function lineToLayerID(lineName: string){
+    return "bus-line-" + lineName;
+}
