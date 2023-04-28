@@ -389,7 +389,7 @@ export default {
             try{
                 let ref = this;
                 console.log("Get bus stop locations request...")
-                axios.get('http://localhost:3500/action/station/bus', {
+                axios.get(Config.urlBack+'/action/station/bus', {
                     headers: {"Access-Control-Allow-Origin": "*"}
                 }).then(function (response) {
                     console.log("bus stop received");
@@ -427,7 +427,7 @@ export default {
 
     },
     mounted() {
-        let webSocket = new WebSocket("ws://localhost:4000");
+        let webSocket = new WebSocket(Config.urlWS);
 
         webSocket.onerror = (event) => {
             console.log(event);
@@ -448,8 +448,8 @@ export default {
             else this.updateMapRT(data);
         }
 
-        getAPIData('http://localhost:3500/lines', this.receiveLinesRoutes, "Error while getting lines routes from backend API. Line visualization and movement interpolation will not work.");
-        getAPIData('http://localhost:3500/action/color/line', this.loadColorsAndLines, "Error while getting color lines from backend API. Color and filtering line of bus will not work.");
+        getAPIData(Config.urlBack+'/lines', this.receiveLinesRoutes, "Error while getting lines routes from backend API. Line visualization and movement interpolation will not work.");
+        getAPIData(Config.urlBack+'/action/color/line', this.loadColorsAndLines, "Error while getting color lines from backend API. Color and filtering line of bus will not work.");
     },
 }
 </script>

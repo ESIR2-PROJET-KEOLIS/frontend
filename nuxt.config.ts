@@ -11,6 +11,8 @@ export default defineNuxtConfig({
     runtimeConfig: {
         public: {
             mapboxAccessToken: process.env.MAPACCESSTOKEN,
+            urlback:  process.env.URLBACK,
+            urlws: process.env.URLWS,
         }
     }
 })
