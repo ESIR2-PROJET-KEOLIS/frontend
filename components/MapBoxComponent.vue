@@ -369,7 +369,7 @@ export default {
         },
 
         updateMapRT(data){
-            if(this.realtimeEnabled) this.mapRef.getSource('busses').setData(data);
+            if(this.realtimeEnabled && this.mapRef.getSource("busses")) this.mapRef.getSource('busses').setData(data);
         },
         setFPS(fps){
             if(fps===0) this.refreshTimeout = 100;
