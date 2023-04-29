@@ -260,14 +260,38 @@ export default {
                         const coordinates = e.features[0].geometry.coordinates.slice();
                         const line = e.features[0].properties.line;
                         let busFilling = "Unknown";
-
+                        let color = "#000000";
+                        if(e.features[0].properties.filling_level && e.features[0].properties.filling_proba){
+                            switch (e.features[0].properties.filling_level) {
+                                case "maxFreqL":
+                                    busFilling = "Low, "+e.features[0].properties.filling_proba.toFixed(2)+"%";
+                                    color = "#058805";
+                                    break;
+                                case "maxFreqM":
+                                    busFilling = "Medium, "+e.features[0].properties.filling_proba.toFixed(2)+"%";
+                                    color = "#FFA500";
+                                    break;
+                                case "maxFreqH":
+                                    busFilling = "High, "+e.features[0].properties.filling_proba.toFixed(2)+"%";
+                                    color = "#b72626";
+                                    break;
+                            }
+                        }
                         while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
                             coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
                         }
 
                         new mapboxgl.Popup()
                             .setLngLat(coordinates)
-                            .setHTML("<span><strong> Bus line : </strong>"+line+"</span></br><span><strong> Bus Filling Prediction : </strong> "+busFilling+"</span>")
+                            .setHTML("<span>" +
+                                "<strong> Bus line : </strong>" +
+                                line+
+                                "</span>" +
+                                "</br>" +
+                                "<span style='color: "+color+"'>" +
+                                "<strong style='color: #000000'> Bus Filling Prediction : </strong>" +
+                                " "+busFilling+
+                                "</span>")
                             .addTo(this.mapRef);
                     });
                     this.mapRef.on('mouseenter', layerID, () => {
@@ -377,7 +401,7 @@ export default {
                     if(!bus || !bus.position) continue;
                     count++;
                     let feature = new Feature(new Geometry("Point", [bus.position[0], bus.position[1]]),
-                        {id: bus.id, sens: bus.sens, line: key, nextindex: bus.next_index_opti, rotation: 0});
+                        {id: bus.id, sens: bus.sens, line: key, nextindex: bus.next_index_opti, rotation: 0, filling_proba: bus.filling_proba, filling_level: bus.filling_level});
                     this.simulatedData.features.push(feature);
                 }
             }
