@@ -1,5 +1,6 @@
 import {SimulationInfo} from "~/classes/SimulationInfo";
 import axios from "axios";
+import {Config} from "~/classes/Config";
 
 export function getBusPositionSimulation(simulation : SimulationInfo, callback : Function, errorCallback : Function){
     try{
@@ -9,7 +10,7 @@ export function getBusPositionSimulation(simulation : SimulationInfo, callback :
         if(hour<10) hour = "0"+hour;
         let minute:any = simulation.getHourSimulated()%60;
         if(minute<10) minute = "0"+minute;
-        axios.get('http://localhost:3500/action/location/bus/'+day+"/"+hour+"/"+minute, {
+        axios.get(Config.urlBack+'/action/location/bus/'+day+"/"+hour+"/"+minute, {
             headers: {"Access-Control-Allow-Origin": "*"}
         }).then(function (response) {
             console.log("Simulation data received for "+day+" at "+hour+":"+minute);

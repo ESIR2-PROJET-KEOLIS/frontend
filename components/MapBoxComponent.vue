@@ -260,14 +260,38 @@ export default {
                         const coordinates = e.features[0].geometry.coordinates.slice();
                         const line = e.features[0].properties.line;
                         let busFilling = "Unknown";
-
+                        let color = "#000000";
+                        if(e.features[0].properties.filling_level && e.features[0].properties.filling_proba){
+                            switch (e.features[0].properties.filling_level) {
+                                case "maxFreqL":
+                                    busFilling = "Low, "+Number.parseFloat(e.features[0].properties.filling_proba).toFixed(2)*100+"%";
+                                    color = "#058805";
+                                    break;
+                                case "maxFreqM":
+                                    busFilling = "Medium, "+Number.parseFloat(e.features[0].properties.filling_proba).toFixed(2)*100+"%";
+                                    color = "#FFA500";
+                                    break;
+                                case "maxFreqH":
+                                    busFilling = "High, "+Number.parseFloat(e.features[0].properties.filling_proba).toFixed(2)*100+"%";
+                                    color = "#b72626";
+                                    break;
+                            }
+                        }
                         while (Math.abs(e.lngLat.lng - coordinates[0]) > 180) {
                             coordinates[0] += e.lngLat.lng > coordinates[0] ? 360 : -360;
                         }
 
                         new mapboxgl.Popup()
                             .setLngLat(coordinates)
-                            .setHTML("<span><strong> Bus line : </strong>"+line+"</span></br><span><strong> Bus Filling Prediction : </strong> "+busFilling+"</span>")
+                            .setHTML("<span style='color: #000000'>" +
+                                "<strong> Bus line : </strong>" +
+                                line+
+                                "</span>" +
+                                "</br>" +
+                                "<span style='color: "+color+"'>" +
+                                "<strong style='color: #000000'> Bus Filling Prediction : </strong>" +
+                                " "+busFilling+
+                                "</span>")
                             .addTo(this.mapRef);
                     });
                     this.mapRef.on('mouseenter', layerID, () => {
@@ -345,7 +369,7 @@ export default {
         },
 
         updateMapRT(data){
-            if(this.realtimeEnabled) this.mapRef.getSource('busses').setData(data);
+            if(this.realtimeEnabled && this.mapRef.getSource("busses")) this.mapRef.getSource('busses').setData(data);
         },
         setFPS(fps){
             if(fps===0) this.refreshTimeout = 100;
@@ -377,7 +401,7 @@ export default {
                     if(!bus || !bus.position) continue;
                     count++;
                     let feature = new Feature(new Geometry("Point", [bus.position[0], bus.position[1]]),
-                        {id: bus.id, sens: bus.sens, line: key, nextindex: bus.next_index_opti, rotation: 0});
+                        {id: bus.id, sens: bus.sens, line: key, nextindex: bus.next_index_opti, rotation: 0, filling_proba: bus.filling_proba, filling_level: bus.filling_level});
                     this.simulatedData.features.push(feature);
                 }
             }
@@ -389,7 +413,7 @@ export default {
             try{
                 let ref = this;
                 console.log("Get bus stop locations request...")
-                axios.get('http://localhost:3500/action/station/bus', {
+                axios.get(Config.urlBack+'/action/station/bus', {
                     headers: {"Access-Control-Allow-Origin": "*"}
                 }).then(function (response) {
                     console.log("bus stop received");
@@ -427,7 +451,7 @@ export default {
 
     },
     mounted() {
-        let webSocket = new WebSocket("ws://localhost:4000");
+        let webSocket = new WebSocket(Config.urlWS);
 
         webSocket.onerror = (event) => {
             console.log(event);
@@ -448,8 +472,8 @@ export default {
             else this.updateMapRT(data);
         }
 
-        getAPIData('http://localhost:3500/lines', this.receiveLinesRoutes, "Error while getting lines routes from backend API. Line visualization and movement interpolation will not work.");
-        getAPIData('http://localhost:3500/action/color/line', this.loadColorsAndLines, "Error while getting color lines from backend API. Color and filtering line of bus will not work.");
+        getAPIData(Config.urlBack+'/lines', this.receiveLinesRoutes, "Error while getting lines routes from backend API. Line visualization and movement interpolation will not work.");
+        getAPIData(Config.urlBack+'/action/color/line', this.loadColorsAndLines, "Error while getting color lines from backend API. Color and filtering line of bus will not work.");
     },
 }
 </script>
