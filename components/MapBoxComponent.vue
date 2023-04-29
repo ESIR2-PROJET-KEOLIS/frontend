@@ -264,15 +264,15 @@ export default {
                         if(e.features[0].properties.filling_level && e.features[0].properties.filling_proba){
                             switch (e.features[0].properties.filling_level) {
                                 case "maxFreqL":
-                                    busFilling = "Low, "+e.features[0].properties.filling_proba.toFixed(2)+"%";
+                                    busFilling = "Low, "+Number.parseFloat(e.features[0].properties.filling_proba).toFixed(2)*100+"%";
                                     color = "#058805";
                                     break;
                                 case "maxFreqM":
-                                    busFilling = "Medium, "+e.features[0].properties.filling_proba.toFixed(2)+"%";
+                                    busFilling = "Medium, "+Number.parseFloat(e.features[0].properties.filling_proba).toFixed(2)*100+"%";
                                     color = "#FFA500";
                                     break;
                                 case "maxFreqH":
-                                    busFilling = "High, "+e.features[0].properties.filling_proba.toFixed(2)+"%";
+                                    busFilling = "High, "+Number.parseFloat(e.features[0].properties.filling_proba).toFixed(2)*100+"%";
                                     color = "#b72626";
                                     break;
                             }
@@ -283,7 +283,7 @@ export default {
 
                         new mapboxgl.Popup()
                             .setLngLat(coordinates)
-                            .setHTML("<span>" +
+                            .setHTML("<span style='color: #000000'>" +
                                 "<strong> Bus line : </strong>" +
                                 line+
                                 "</span>" +
